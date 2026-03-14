@@ -1,15 +1,77 @@
-*.iml
+# Gradle files
 .gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
 /build
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log/OS Files
+*.log
+.DS_Store
+.DS_Store?
+*.swp
+*.swo
+*~
+
+# Android Lint
+lint-results.xml
+lint-results-*.xml
+
+# IDE
+.idea/
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/gradle.xml
+.idea/misc.xml
+.idea/encodings.xml
+*.iml
+
+# Gradle
+/build/
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Gradle per-project
+.gradle
+build/
+
+# Captures folder used by Android Studio
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+
+# ProGuard
+proguard/mapping.txt
+proguard/seeds.txt
+proguard/usage.txt
+proguard/dump.txt
+proguard-project.txt
+
+# Keystore files
+*.jks
+*.keystore
+*.p12
+
+# DLL Files
+*.dll
+
+# Lint - Android Studio
+/android/lint-report.html
+/android/lint-report_files/

@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.myapplication"
+    namespace = "com.example.theflower"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.myapplication"
+        applicationId = "com.example.theflower"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -57,4 +57,18 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    
+    // Networking
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+    implementation(libs.kotlinx.serialization.json)
+    
+    // DataStore for preferences/token storage
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // Lifecycle & ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
 }
