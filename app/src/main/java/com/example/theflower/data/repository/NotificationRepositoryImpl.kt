@@ -11,69 +11,67 @@ import retrofit2.HttpException
  * Handles notification retrieval and management
  */
 class NotificationRepositoryImpl(
-    private val apiService: TheFlowerApiService,
-    private val token: String
+    private val apiService: TheFlowerApiService
 ) : INotificationRepository {
-    
-    private val authHeader get() = token
     
     /**
      * Get paginated list of notifications
      */
     override suspend fun getNotifications(
+        token: String,
         pageNumber: Int,
         pageSize: Int
     ): Result<PaginatedResponse<NotificationDto>> {
         return try {
-            val response = apiService.getNotifications(authHeader, pageNumber, pageSize)
+            val response = apiService.getNotifications(token, pageNumber, pageSize)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ServerError(message = response.message))
+                Result.failure(ApiException.ServerError(500, response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Mark single notification as read
      */
-    override suspend fun markAsRead(notificationId: Int): Result<Unit> {
+    override suspend fun markAsRead(token: String, notificationId: Int): Result<NotificationDto> {
         return try {
-            val response = apiService.markNotificationAsRead(authHeader, notificationId)
+            val response = apiService.markNotificationAsRead(token, notificationId)
             
-            if (response.success) {
-                Result.success(Unit)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
             } else {
-                Result.failure(ApiException.ServerError(message = response.message))
+                Result.failure(ApiException.ServerError(500, response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Mark all notifications as read
      */
-    override suspend fun markAllAsRead(): Result<Unit> {
+    override suspend fun markAllAsRead(token: String): Result<Unit> {
         return try {
-            val response = apiService.markAllNotificationsAsRead(authHeader)
+            val response = apiService.markAllNotificationsAsRead(token)
             
             if (response.success) {
                 Result.success(Unit)
             } else {
-                Result.failure(ApiException.ServerError(message = response.message))
+                Result.failure(ApiException.ServerError(500, response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
 }

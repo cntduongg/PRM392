@@ -11,81 +11,67 @@ import retrofit2.HttpException
  * Handles user profile operations
  */
 class UserRepositoryImpl(
-    private val apiService: TheFlowerApiService,
-    private val token: String
+    private val apiService: TheFlowerApiService
 ) : IUserRepository {
-    
-    private val authHeader get() = token
     
     /**
      * Get user profile details
      */
-    override suspend fun getUserProfile(): Result<UserProfileDto> {
+    override suspend fun getUserProfile(token: String): Result<UserProfileDto> {
         return try {
-            val response = apiService.getUserProfile(authHeader)
+            val response = apiService.getUserProfile(token)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.NotFound(message = "User profile not found"))
+                Result.failure(ApiException.NotFound("User profile not found"))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Update user profile information
      */
-    override suspend fun updateUserProfile(
-        fullName: String,
-        phoneNumber: String,
-        address: String,
-        avatar: String?
-    ): Result<UserProfileDto> {
+    override suspend fun updateUserProfile(token: String, request: UpdateProfileRequest): Result<UserProfileDto> {
         return try {
-            val request = UpdateProfileRequest(
-                fullName = fullName,
-                phoneNumber = phoneNumber,
-                address = address,
-                avatar = avatar
-            )
-            val response = apiService.updateUserProfile(authHeader, request)
+            val response = apiService.updateUserProfile(token, request)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ValidationError(message = response.message))
+                Result.failure(ApiException.ValidationError(response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Change user password
      */
-    override suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit> {
+    override suspend fun changePassword(token: String, oldPassword: String, newPassword: String): Result<Unit> {
         return try {
             val request = mapOf(
                 "oldPassword" to oldPassword,
                 "newPassword" to newPassword
             )
-            val response = apiService.changePassword(authHeader, request)
+            val response = apiService.changePassword(token, request)
             
             if (response.success) {
                 Result.success(Unit)
             } else {
-                Result.failure(ApiException.ValidationError(message = response.message))
+                Result.failure(ApiException.ValidationError(response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
 }

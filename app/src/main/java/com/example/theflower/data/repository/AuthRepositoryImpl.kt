@@ -17,70 +17,57 @@ class AuthRepositoryImpl(
     /**
      * Register new user account
      */
-    override suspend fun register(
-        email: String,
-        password: String,
-        fullName: String,
-        phoneNumber: String?
-    ): Result<AuthResponse> {
+    override suspend fun register(request: RegisterRequest): Result<AuthResponse> {
         return try {
-            val request = RegisterRequest(
-                email = email,
-                password = password,
-                fullName = fullName,
-                phoneNumber = phoneNumber
-            )
             val response = apiService.register(request)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ValidationError(message = response.message))
+                Result.failure(ApiException.ValidationError(response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Login user with email and password
      */
-    override suspend fun login(email: String, password: String): Result<AuthResponse> {
+    override suspend fun login(request: LoginRequest): Result<AuthResponse> {
         return try {
-            val request = LoginRequest(email = email, password = password)
             val response = apiService.login(request)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.Unauthorized(message = "Invalid credentials"))
+                Result.failure(ApiException.Unauthorized("Invalid credentials"))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Refresh access token using refresh token
      */
-    override suspend fun refreshToken(refreshToken: String): Result<AuthResponse> {
+    override suspend fun refreshToken(request: RefreshTokenRequest): Result<AuthResponse> {
         return try {
-            val request = RefreshTokenRequest(refreshToken = refreshToken)
             val response = apiService.refreshToken(request)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.TokenExpired(message = "Token refresh failed"))
+                Result.failure(ApiException.TokenExpired("Token refresh failed"))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
@@ -95,7 +82,7 @@ class AuthRepositoryImpl(
             if (response.success) {
                 Result.success(Unit)
             } else {
-                Result.failure(ApiException.ServerError(message = response.message))
+                Result.failure(ApiException.ServerError(500, response.message))
             }
         } catch (e: HttpException) {
             // Treat 401/403 as success for logout (already logged out)
@@ -105,7 +92,7 @@ class AuthRepositoryImpl(
                 Result.failure(ApiException.handleException(e))
             }
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
 }

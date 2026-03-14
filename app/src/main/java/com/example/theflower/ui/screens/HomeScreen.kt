@@ -24,7 +24,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.theflower.data.MockData
-import com.example.theflower.data.Product
+import com.example.theflower.domain.models.Occasion
+import com.example.theflower.domain.models.Product
 import com.example.theflower.ui.theme.*
 
 @Composable
@@ -195,7 +196,7 @@ fun HomeScreen(
 
 @Composable
 fun OccasionPill(
-    occasion: com.example.theflower.data.Occasion,
+    occasion: Occasion,
     onClick: () -> Unit
 ) {
     Column(

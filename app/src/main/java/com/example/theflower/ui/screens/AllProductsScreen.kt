@@ -20,7 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.example.theflower.data.MockData
-import com.example.theflower.data.Product
+import com.example.theflower.domain.models.Product
 import com.example.theflower.ui.theme.*
 
 @Composable

@@ -1,5 +1,11 @@
 package com.example.theflower.data
 
+import com.example.theflower.domain.models.CartItem
+import com.example.theflower.domain.models.Notification
+import com.example.theflower.domain.models.Occasion
+import com.example.theflower.domain.models.Product
+import com.example.theflower.domain.models.User
+
 object MockData {
     val currentUser = User(
         id = 1,

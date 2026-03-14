@@ -13,7 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.example.theflower.data.CartItem
+import com.example.theflower.domain.models.CartItem
 import com.example.theflower.data.MockData
 import com.example.theflower.ui.theme.*
 

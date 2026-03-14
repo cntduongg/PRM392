@@ -3,7 +3,7 @@ package com.example.theflower.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.theflower.ui.components.NavTab
-import com.example.theflower.data.Product
+import com.example.theflower.domain.models.Product
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

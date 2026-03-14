@@ -95,9 +95,7 @@ object DIContainer {
      * Note: Requires authentication token
      */
     fun getCartRepository(): ICartRepository {
-        // Cart operations require authentication, so we get the token
-        // In a real app, you'd get this from TokenManager, but for now using direct initialization
-        return cartRepository ?: CartRepositoryImpl(getApiService(), "token_placeholder").also { cartRepository = it }
+        return cartRepository ?: CartRepositoryImpl(getApiService()).also { cartRepository = it }
     }
     
     /**
@@ -106,7 +104,7 @@ object DIContainer {
      * Note: Requires authentication token
      */
     fun getOrderRepository(): IOrderRepository {
-        return orderRepository ?: OrderRepositoryImpl(getApiService(), "token_placeholder").also { orderRepository = it }
+        return orderRepository ?: OrderRepositoryImpl(getApiService()).also { orderRepository = it }
     }
     
     /**
@@ -115,7 +113,7 @@ object DIContainer {
      * Note: Requires authentication token
      */
     fun getPaymentRepository(): IPaymentRepository {
-        return paymentRepository ?: PaymentRepositoryImpl(getApiService(), "token_placeholder").also { paymentRepository = it }
+        return paymentRepository ?: PaymentRepositoryImpl(getApiService()).also { paymentRepository = it }
     }
     
     /**
@@ -124,7 +122,7 @@ object DIContainer {
      * Note: Requires authentication token
      */
     fun getNotificationRepository(): INotificationRepository {
-        return notificationRepository ?: NotificationRepositoryImpl(getApiService(), "token_placeholder").also { notificationRepository = it }
+        return notificationRepository ?: NotificationRepositoryImpl(getApiService()).also { notificationRepository = it }
     }
     
     /**
@@ -133,7 +131,7 @@ object DIContainer {
      * Note: Requires authentication token
      */
     fun getChatRepository(): IChatRepository {
-        return chatRepository ?: ChatRepositoryImpl(getApiService(), "token_placeholder").also { chatRepository = it }
+        return chatRepository ?: ChatRepositoryImpl(getApiService()).also { chatRepository = it }
     }
     
     /**
@@ -142,7 +140,7 @@ object DIContainer {
      * Note: Requires authentication token
      */
     fun getUserRepository(): IUserRepository {
-        return userRepository ?: UserRepositoryImpl(getApiService(), "token_placeholder").also { userRepository = it }
+        return userRepository ?: UserRepositoryImpl(getApiService()).also { userRepository = it }
     }
     
     /**

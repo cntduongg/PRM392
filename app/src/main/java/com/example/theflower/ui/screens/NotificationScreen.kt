@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.theflower.data.Notification
+import com.example.theflower.domain.models.Notification
 import com.example.theflower.data.MockData
 import com.example.theflower.ui.theme.*
 import java.text.SimpleDateFormat
@@ -88,7 +88,7 @@ fun NotificationScreen() {
 @Composable
 fun NotificationItem(notification: Notification) {
     val dateFormat = SimpleDateFormat("dd/MM HH:mm", Locale("vi", "VN"))
-    val formattedDate = dateFormat.format(Date(notification.timestamp))
+    val formattedDate = dateFormat.format(Date(notification.createdAt))
     
     val backgroundColor = when {
         !notification.isRead -> Sand

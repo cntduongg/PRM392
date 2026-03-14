@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.theflower.data.Product
+import com.example.theflower.domain.models.Product
 import com.example.theflower.ui.theme.*
 
 @Composable

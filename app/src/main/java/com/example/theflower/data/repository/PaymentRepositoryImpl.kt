@@ -11,56 +11,44 @@ import retrofit2.HttpException
  * Handles payment processing operations
  */
 class PaymentRepositoryImpl(
-    private val apiService: TheFlowerApiService,
-    private val token: String
+    private val apiService: TheFlowerApiService
 ) : IPaymentRepository {
-    
-    private val authHeader get() = token
     
     /**
      * Create new payment for order
      */
-    override suspend fun createPayment(
-        orderId: Int,
-        amount: Int,
-        paymentMethod: String
-    ): Result<PaymentDto> {
+    override suspend fun createPayment(token: String, request: CreatePaymentRequest): Result<PaymentDto> {
         return try {
-            val request = CreatePaymentRequest(
-                orderId = orderId,
-                amount = amount,
-                paymentMethod = paymentMethod
-            )
-            val response = apiService.createPayment(authHeader, request)
+            val response = apiService.createPayment(token, request)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ValidationError(message = response.message))
+                Result.failure(ApiException.ValidationError(response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Get payment status by payment ID
      */
-    override suspend fun getPaymentStatus(paymentId: Int): Result<PaymentDto> {
+    override suspend fun getPaymentStatus(token: String, paymentId: Int): Result<PaymentDto> {
         return try {
-            val response = apiService.getPaymentStatus(authHeader, paymentId)
+            val response = apiService.getPaymentStatus(token, paymentId)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.NotFound(message = "Payment not found"))
+                Result.failure(ApiException.NotFound("Payment not found"))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
 }

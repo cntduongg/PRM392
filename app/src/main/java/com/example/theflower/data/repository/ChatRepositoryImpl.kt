@@ -11,47 +11,44 @@ import retrofit2.HttpException
  * Handles chat message retrieval and sending
  */
 class ChatRepositoryImpl(
-    private val apiService: TheFlowerApiService,
-    private val token: String
+    private val apiService: TheFlowerApiService
 ) : IChatRepository {
-    
-    private val authHeader get() = token
     
     /**
      * Get all chat conversations
      */
-    override suspend fun getChatConversations(): Result<List<ChatMessageDto>> {
+    override suspend fun getChatConversations(token: String): Result<List<ChatMessageDto>> {
         return try {
-            val response = apiService.getChatConversations(authHeader)
+            val response = apiService.getChatConversations(token)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ServerError(message = response.message))
+                Result.failure(ApiException.ServerError(500, response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Get messages from specific conversation
      */
-    override suspend fun getConversationMessages(conversationId: Int): Result<List<ChatMessageDto>> {
+    override suspend fun getConversationMessages(token: String, conversationId: Int): Result<List<ChatMessageDto>> {
         return try {
-            val response = apiService.getConversationMessages(authHeader, conversationId)
+            val response = apiService.getConversationMessages(token, conversationId)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.NotFound(message = "Conversation not found"))
+                Result.failure(ApiException.NotFound("Conversation not found"))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
@@ -59,25 +56,21 @@ class ChatRepositoryImpl(
      * Send chat message
      */
     override suspend fun sendChatMessage(
-        conversationId: Int,
-        message: String
+        token: String,
+        request: SendChatMessageRequest
     ): Result<ChatMessageDto> {
         return try {
-            val request = SendChatMessageRequest(
-                conversationId = conversationId,
-                message = message
-            )
-            val response = apiService.sendChatMessage(authHeader, request)
+            val response = apiService.sendChatMessage(token, request)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ValidationError(message = response.message))
+                Result.failure(ApiException.ValidationError(response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
 }

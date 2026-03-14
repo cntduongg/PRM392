@@ -1,11 +1,13 @@
 package com.example.theflower.ui.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import com.example.theflower.ui.viewmodels.AppViewModel
 import com.example.theflower.ui.screens.*
-import com.example.theflower.data.Product
+import com.example.theflower.domain.models.Product
 
 /**
  * Main Navigation Routing
@@ -134,7 +136,7 @@ fun MainAppLayout(
         }
         com.example.theflower.ui.components.NavTab.PROFILE -> {
             // ProfileScreen would go here
-            Box()
+            Box(modifier = Modifier)
         }
     }
 }

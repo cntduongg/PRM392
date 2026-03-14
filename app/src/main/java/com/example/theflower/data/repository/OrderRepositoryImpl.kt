@@ -11,102 +11,82 @@ import retrofit2.HttpException
  * Handles all order management operations
  */
 class OrderRepositoryImpl(
-    private val apiService: TheFlowerApiService,
-    private val token: String
+    private val apiService: TheFlowerApiService
 ) : IOrderRepository {
-    
-    private val authHeader get() = token
     
     /**
      * Get paginated list of user's orders
      */
-    override suspend fun getOrders(pageNumber: Int, pageSize: Int): Result<PaginatedResponse<OrderDto>> {
+    override suspend fun getOrders(token: String, pageNumber: Int, pageSize: Int): Result<PaginatedResponse<OrderDto>> {
         return try {
-            val response = apiService.getOrders(authHeader, pageNumber, pageSize)
+            val response = apiService.getOrders(token, pageNumber, pageSize)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ServerError(message = response.message))
+                Result.failure(ApiException.ServerError(500, response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Get order details by ID
      */
-    override suspend fun getOrderDetail(orderId: Int): Result<OrderDto> {
+    override suspend fun getOrderDetail(token: String, orderId: Int): Result<OrderDto> {
         return try {
-            val response = apiService.getOrderDetail(authHeader, orderId)
+            val response = apiService.getOrderDetail(token, orderId)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.NotFound(message = "Order not found"))
+                Result.failure(ApiException.NotFound("Order not found"))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Create new order from cart
      */
-    override suspend fun createOrder(
-        items: List<CartItemDto>,
-        recipientName: String,
-        recipientPhone: String,
-        recipientAddress: String,
-        occasion: String?,
-        message: String?,
-        paymentMethod: String
-    ): Result<OrderDto> {
+    override suspend fun createOrder(token: String, request: CreateOrderRequest): Result<OrderDto> {
         return try {
-            val request = CreateOrderRequest(
-                items = items,
-                recipientName = recipientName,
-                recipientPhone = recipientPhone,
-                recipientAddress = recipientAddress,
-                occasion = occasion,
-                message = message,
-                paymentMethod = paymentMethod
-            )
-            val response = apiService.createOrder(authHeader, request)
+            val response = apiService.createOrder(token, request)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ValidationError(message = response.message))
+                Result.failure(ApiException.ValidationError(response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
     
     /**
      * Cancel existing order
      */
-    override suspend fun cancelOrder(orderId: Int): Result<OrderDto> {
+    override suspend fun cancelOrder(token: String, orderId: Int): Result<OrderDto> {
         return try {
-            val response = apiService.cancelOrder(authHeader, orderId)
+            val response = apiService.cancelOrder(token, orderId)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(ApiException.ServerError(message = response.message))
+                Result.failure(ApiException.ServerError(500, response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(cause = e))
+            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
 }

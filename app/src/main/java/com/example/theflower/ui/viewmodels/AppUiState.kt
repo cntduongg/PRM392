@@ -1,7 +1,7 @@
 package com.example.theflower.ui.viewmodels
 
 import com.example.theflower.ui.components.NavTab
-import com.example.theflower.data.Product
+import com.example.theflower.domain.models.Product
 
 /**
  * Main Application UI State
