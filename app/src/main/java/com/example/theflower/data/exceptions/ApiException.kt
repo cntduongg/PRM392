@@ -1,6 +1,9 @@
 package com.example.theflower.data.exceptions
 
 import retrofit2.HttpException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 /**
  * Base sealed class for API exceptions
@@ -10,7 +13,7 @@ sealed class ApiException(message: String, cause: Throwable? = null) : Exception
     
     // Network level errors
     data class NetworkError(val errorMessage: String? = null, val errorCause: Throwable? = null) : 
-        ApiException("Network error: ${errorMessage ?: errorCause?.message ?: "Unknown"}", errorCause)
+        ApiException("Network error: ${resolveNetworkMessage(errorMessage, errorCause)}", errorCause)
     
     // HTTP 400 - Bad Request / Validation errors
     data class ValidationError(val errorMessage: String? = null) : 
@@ -57,6 +60,19 @@ sealed class ApiException(message: String, cause: Throwable? = null) : Exception
         ApiException("Failed to parse response: $errorMessage")
     
     companion object {
+        private fun resolveNetworkMessage(errorMessage: String?, errorCause: Throwable?): String {
+            if (!errorMessage.isNullOrBlank()) {
+                return errorMessage
+            }
+
+            return when (errorCause) {
+                is SocketTimeoutException -> "Connection timed out. Please check server status and network."
+                is ConnectException -> "Cannot reach server. Verify backend is running and port is accessible."
+                is UnknownHostException -> "Cannot resolve server host. Check DNS or server address."
+                else -> errorCause?.message ?: "Unknown"
+            }
+        }
+
         /**
          * Convert HTTP exceptions to typed ApiException
          * Handles various HTTP status codes with appropriate exception types

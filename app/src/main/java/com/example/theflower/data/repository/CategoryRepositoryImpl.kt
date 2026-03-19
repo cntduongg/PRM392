@@ -19,15 +19,21 @@ class CategoryRepositoryImpl(
      */
     override suspend fun getCategories(): Result<List<CategoryDto>> {
         return try {
-            val response = apiService.getCategories()
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
+            Result.success(apiService.getCategoriesBackend())
         } catch (e: HttpException) {
-            Result.failure(ApiException.handleException(e))
+            // Fallback for deployments that still return ApiResponse<List<CategoryDto>> on /api/categories.
+            try {
+                val response = apiService.getCategories()
+                if (response.success && response.data != null) {
+                    Result.success(response.data)
+                } else {
+                    Result.failure(ApiException.ServerError(500, response.message))
+                }
+            } catch (fallbackError: HttpException) {
+                Result.failure(ApiException.handleException(fallbackError))
+            } catch (fallbackError: Exception) {
+                Result.failure(ApiException.NetworkError(errorCause = fallbackError))
+            }
         } catch (e: Exception) {
             Result.failure(ApiException.NetworkError(errorCause = e))
         }

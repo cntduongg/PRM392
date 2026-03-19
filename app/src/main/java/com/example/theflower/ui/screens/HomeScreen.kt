@@ -85,12 +85,17 @@ fun HomeScreen(
                     .padding(horizontal = 16.dp)
                     .height(48.dp)
                     .clip(RoundedCornerShape(24.dp)),
-                placeholder = { Text("Tìm hoa, lựa chọn dịp...", color = SandDark) },
+                placeholder = { Text("Tìm hoa, lựa chọn dịp...", color = PlaceholderGray) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Sand,
                     unfocusedContainerColor = Sand,
                     focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = SoilBrown,
+                    unfocusedTextColor = SoilBrown,
+                    cursorColor = MossGreen,
+                    focusedPlaceholderColor = PlaceholderGray,
+                    unfocusedPlaceholderColor = PlaceholderGray
                 ),
                 leadingIcon = { Text("🔍", modifier = Modifier.padding(12.dp)) },
                 singleLine = true

@@ -98,12 +98,17 @@ fun PaymentScreen(
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    placeholder = { Text("Tên người nhận") },
+                    placeholder = { Text("Tên người nhận", color = PlaceholderGray) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Sand,
                         unfocusedContainerColor = Sand,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = SoilBrown,
+                        unfocusedTextColor = SoilBrown,
+                        cursorColor = MossGreen,
+                        focusedPlaceholderColor = PlaceholderGray,
+                        unfocusedPlaceholderColor = PlaceholderGray
                     )
                 )
 
@@ -116,12 +121,17 @@ fun PaymentScreen(
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    placeholder = { Text("Số điện thoại") },
+                    placeholder = { Text("Số điện thoại", color = PlaceholderGray) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Sand,
                         unfocusedContainerColor = Sand,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = SoilBrown,
+                        unfocusedTextColor = SoilBrown,
+                        cursorColor = MossGreen,
+                        focusedPlaceholderColor = PlaceholderGray,
+                        unfocusedPlaceholderColor = PlaceholderGray
                     )
                 )
 
@@ -134,12 +144,17 @@ fun PaymentScreen(
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    placeholder = { Text("Ngày giao hàng") },
+                    placeholder = { Text("Ngày giao hàng", color = PlaceholderGray) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Sand,
                         unfocusedContainerColor = Sand,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = SoilBrown,
+                        unfocusedTextColor = SoilBrown,
+                        cursorColor = MossGreen,
+                        focusedPlaceholderColor = PlaceholderGray,
+                        unfocusedPlaceholderColor = PlaceholderGray
                     )
                 )
             }

@@ -1,1 +1,10 @@
+# Android app module build artifacts
 /build
+
+# Native/CMake intermediates (if NDK/C++ is enabled)
+/.cxx
+/.externalNativeBuild
+
+# Generated output folders
+/outputs
+/generated

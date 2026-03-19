@@ -26,4 +26,6 @@ val PeachLight = Color(0xFFF5D4C8)
 
 val SandDark = Color(0xFFD4C4B0)
 
+val PlaceholderGray = Color(0xFF9E8E7E)
+
 val SoilBrownDark = Color(0xFFA68B61)

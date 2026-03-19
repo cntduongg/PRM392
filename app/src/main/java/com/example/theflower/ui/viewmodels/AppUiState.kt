@@ -3,6 +3,7 @@ package com.example.theflower.ui.viewmodels
 import com.example.theflower.ui.components.NavTab
 import com.example.theflower.domain.models.Product
 import com.example.theflower.data.remote.dtos.CartDto
+import com.example.theflower.data.remote.dtos.CategoryDto
 import com.example.theflower.data.remote.dtos.OrderDto
 import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.AdminUserDto
@@ -21,8 +22,11 @@ data class AppUiState(
     val userId: Int? = null,
     val userName: String = "",
     val userEmail: String = "",
+    val userPhone: String = "",
+    val userAddress: String = "",
     val userRole: String = "USER",
     val accessToken: String = "",
+    val categories: List<CategoryDto> = emptyList(),
     val products: List<ProductDto> = emptyList(),
     val searchQuery: String = "",
     val cart: CartDto? = null,

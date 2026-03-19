@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.theflower.ui.theme.*
+import timber.log.Timber
 
 @Composable
 fun LoginScreen(
@@ -28,6 +30,25 @@ fun LoginScreen(
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val showPassword = remember { mutableStateOf(false) }
+    val authTextFieldColors = TextFieldDefaults.colors(
+        focusedContainerColor = Sand,
+        unfocusedContainerColor = Sand,
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+        focusedTextColor = SoilBrown,
+        unfocusedTextColor = SoilBrown,
+        cursorColor = MossGreen,
+        focusedPlaceholderColor = PlaceholderGray,
+        unfocusedPlaceholderColor = PlaceholderGray,
+        focusedLeadingIconColor = SoilBrown,
+        unfocusedLeadingIconColor = SoilBrown,
+        focusedTrailingIconColor = SoilBrown,
+        unfocusedTrailingIconColor = SoilBrown
+    )
+
+    LaunchedEffect(Unit) {
+        Timber.tag("AuthScreen").d("Login screen opened")
+    }
 
     Column(
         modifier = Modifier
@@ -76,19 +97,17 @@ fun LoginScreen(
             // Email field
             TextField(
                 value = email.value,
-                onValueChange = { email.value = it },
+                onValueChange = {
+                    email.value = it
+                    Timber.tag("AuthScreen").d("Login email changed. length=%d", it.length)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(RoundedCornerShape(8.dp)),
-                placeholder = { Text("Email") },
+                placeholder = { Text("Email", color = PlaceholderGray) },
                 leadingIcon = { Text("✉️") },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Sand,
-                    unfocusedContainerColor = Sand,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
+                colors = authTextFieldColors,
                 singleLine = true
             )
 
@@ -97,26 +116,27 @@ fun LoginScreen(
             // Password field
             TextField(
                 value = password.value,
-                onValueChange = { password.value = it },
+                onValueChange = {
+                    password.value = it
+                    Timber.tag("AuthScreen").d("Login password changed. length=%d", it.length)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(RoundedCornerShape(8.dp)),
-                placeholder = { Text("Mật khẩu") },
+                placeholder = { Text("Mật khẩu", color = PlaceholderGray) },
                 leadingIcon = { Text("🔒") },
                 trailingIcon = {
                     Text(
                         text = if (showPassword.value) "👁️" else "👁️‍🗨️",
-                        modifier = Modifier.clickable { showPassword.value = !showPassword.value }
+                        modifier = Modifier.clickable {
+                            showPassword.value = !showPassword.value
+                            Timber.tag("AuthScreen").d("Login password visibility toggled. visible=%s", showPassword.value)
+                        }
                     )
                 },
                 visualTransformation = if (showPassword.value) VisualTransformation.None else PasswordVisualTransformation(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Sand,
-                    unfocusedContainerColor = Sand,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
+                colors = authTextFieldColors,
                 singleLine = true
             )
 
@@ -129,14 +149,20 @@ fun LoginScreen(
                 color = MossGreen,
                 modifier = Modifier
                     .align(Alignment.End)
-                    .clickable(onClick = onForgotPasswordClick)
+                    .clickable {
+                        Timber.tag("AuthScreen").d("Forgot password clicked")
+                        onForgotPasswordClick()
+                    }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Login button
             Button(
-                onClick = { onLoginClick(email.value, password.value) },
+                onClick = {
+                    Timber.tag("AuthScreen").d("Login clicked. emailLength=%d passwordLength=%d", email.value.length, password.value.length)
+                    onLoginClick(email.value, password.value)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -158,9 +184,9 @@ fun LoginScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Divider(modifier = Modifier.weight(1f), color = SandDark)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = SandDark)
                 Text("hoặc", style = MaterialTheme.typography.bodySmall, color = SandDark)
-                Divider(modifier = Modifier.weight(1f), color = SandDark)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = SandDark)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -204,7 +230,10 @@ fun LoginScreen(
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onRegisterClick)
+                .clickable {
+                    Timber.tag("AuthScreen").d("Navigate to register clicked")
+                    onRegisterClick()
+                }
                 .padding(16.dp)
         )
     }
@@ -221,6 +250,25 @@ fun RegisterScreen(
     val confirmPassword = remember { mutableStateOf("") }
     val showPassword = remember { mutableStateOf(false) }
     val agreeToTerms = remember { mutableStateOf(false) }
+    val authTextFieldColors = TextFieldDefaults.colors(
+        focusedContainerColor = Sand,
+        unfocusedContainerColor = Sand,
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+        focusedTextColor = SoilBrown,
+        unfocusedTextColor = SoilBrown,
+        cursorColor = MossGreen,
+        focusedPlaceholderColor = PlaceholderGray,
+        unfocusedPlaceholderColor = PlaceholderGray,
+        focusedLeadingIconColor = SoilBrown,
+        unfocusedLeadingIconColor = SoilBrown,
+        focusedTrailingIconColor = SoilBrown,
+        unfocusedTrailingIconColor = SoilBrown
+    )
+
+    LaunchedEffect(Unit) {
+        Timber.tag("AuthScreen").d("Register screen opened")
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -258,19 +306,17 @@ fun RegisterScreen(
                 // Name field
                 TextField(
                     value = name.value,
-                    onValueChange = { name.value = it },
+                    onValueChange = {
+                        name.value = it
+                        Timber.tag("AuthScreen").d("Register name changed. length=%d", it.length)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    placeholder = { Text("Họ tên") },
+                    placeholder = { Text("Họ tên", color = PlaceholderGray) },
                     leadingIcon = { Text("👤") },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Sand,
-                        unfocusedContainerColor = Sand,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
+                    colors = authTextFieldColors,
                     singleLine = true
                 )
 
@@ -279,19 +325,17 @@ fun RegisterScreen(
                 // Email field
                 TextField(
                     value = email.value,
-                    onValueChange = { email.value = it },
+                    onValueChange = {
+                        email.value = it
+                        Timber.tag("AuthScreen").d("Register email changed. length=%d", it.length)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    placeholder = { Text("Email") },
+                    placeholder = { Text("Email", color = PlaceholderGray) },
                     leadingIcon = { Text("✉️") },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Sand,
-                        unfocusedContainerColor = Sand,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
+                    colors = authTextFieldColors,
                     singleLine = true
                 )
 
@@ -300,20 +344,18 @@ fun RegisterScreen(
                 // Password field
                 TextField(
                     value = password.value,
-                    onValueChange = { password.value = it },
+                    onValueChange = {
+                        password.value = it
+                        Timber.tag("AuthScreen").d("Register password changed. length=%d", it.length)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    placeholder = { Text("Mật khẩu") },
+                    placeholder = { Text("Mật khẩu", color = PlaceholderGray) },
                     leadingIcon = { Text("🔒") },
                     visualTransformation = PasswordVisualTransformation(),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Sand,
-                        unfocusedContainerColor = Sand,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
+                    colors = authTextFieldColors,
                     singleLine = true
                 )
 
@@ -322,20 +364,18 @@ fun RegisterScreen(
                 // Confirm password field
                 TextField(
                     value = confirmPassword.value,
-                    onValueChange = { confirmPassword.value = it },
+                    onValueChange = {
+                        confirmPassword.value = it
+                        Timber.tag("AuthScreen").d("Register confirm password changed. length=%d", it.length)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    placeholder = { Text("Xác nhận mật khẩu") },
+                    placeholder = { Text("Xác nhận mật khẩu", color = PlaceholderGray) },
                     leadingIcon = { Text("🔒") },
                     visualTransformation = PasswordVisualTransformation(),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Sand,
-                        unfocusedContainerColor = Sand,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
+                    colors = authTextFieldColors,
                     singleLine = true
                 )
 
@@ -349,7 +389,10 @@ fun RegisterScreen(
                 ) {
                     Checkbox(
                         checked = agreeToTerms.value,
-                        onCheckedChange = { agreeToTerms.value = it },
+                        onCheckedChange = {
+                            agreeToTerms.value = it
+                            Timber.tag("AuthScreen").d("Register terms changed. agreed=%s", it)
+                        },
                         colors = CheckboxDefaults.colors(
                             checkedColor = MossGreen,
                             uncheckedColor = SandDark
@@ -366,7 +409,16 @@ fun RegisterScreen(
 
                 // Register button
                 Button(
-                    onClick = { onRegisterClick(name.value, email.value, password.value) },
+                    onClick = {
+                        Timber.tag("AuthScreen").d(
+                            "Register clicked. nameLength=%d emailLength=%d passwordLength=%d agreed=%s",
+                            name.value.length,
+                            email.value.length,
+                            password.value.length,
+                            agreeToTerms.value
+                        )
+                        onRegisterClick(name.value, email.value, password.value)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -390,7 +442,10 @@ fun RegisterScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onLoginClick)
+                        .clickable {
+                            Timber.tag("AuthScreen").d("Navigate to login clicked")
+                            onLoginClick()
+                        }
                 )
 
                 Spacer(modifier = Modifier.height(40.dp))

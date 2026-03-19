@@ -18,7 +18,8 @@ import javax.net.ssl.X509TrustManager
  */
 object RetrofitClient {
     
-    private const val BASE_URL_DEV = "https://10.0.2.2:7225/"
+    private const val BASE_URL_DEV = "http://192.168.1.7:5134/"
+    // private const val BASE_URL_DEV = "https://10.0.2.2:7225/"
     private const val BASE_URL_PROD = "https://api.theflower.com/"
     private const val TIMEOUT_SECONDS = 30L
     
@@ -130,3 +131,4 @@ class AuthInterceptor : Interceptor {
                path.contains("/categories")
     }
 }
+
