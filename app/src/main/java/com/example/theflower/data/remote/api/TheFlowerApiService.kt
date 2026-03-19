@@ -5,7 +5,7 @@ import com.example.theflower.data.remote.dtos.*
 
 /**
  * The Flower API Service
- * Base URL: http://localhost:5000 (Development) or https://api.theflower.com (Production)
+ * Base URL: https://10.0.2.2:7225 (Development on Android emulator) or https://api.theflower.com (Production)
  * 
  * All endpoints with authentication require "Authorization: Bearer {token}" header
  */
@@ -99,20 +99,20 @@ interface TheFlowerApiService {
     suspend fun createProductAdmin(
         @Header("Authorization") token: String,
         @Body request: ProductUpsertRequest
-    ): ProductDto
+    ): ApiResponse<ProductDto>
 
     @PUT("api/products/{id}")
     suspend fun updateProductAdmin(
         @Header("Authorization") token: String,
         @Path("id") productId: Int,
-        @Body request: ProductUpsertRequest
-    ): ProductDto
+        @Body request: UpdateProductRequest
+    ): ApiResponse<Any>
 
     @DELETE("api/products/{id}")
     suspend fun deleteProductAdmin(
         @Header("Authorization") token: String,
         @Path("id") productId: Int
-    )
+    ): ApiResponse<Any>
     
     // ────── AUTH ──────────────────────────────────────────────────────────────
     

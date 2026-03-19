@@ -829,8 +829,8 @@ private fun AdminDashboardScreen(
     onCreateUser: (String, String, String, String, String, String) -> Unit,
     onUpdateUser: (Int, String, String, String, String, String, String) -> Unit,
     onDeleteUser: (Int) -> Unit,
-    onCreateProduct: (String, String, String, String, String) -> Unit,
-    onUpdateProduct: (Int, String, String, String, String, String) -> Unit,
+    onCreateProduct: (String, String, String, String, String, String, String, String) -> Unit,
+    onUpdateProduct: (Int, String, String, String, String, String, String, String, String) -> Unit,
     onDeleteProduct: (Int) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -1009,15 +1009,18 @@ private fun UserManagementSection(
 private fun ProductManagementSection(
     products: List<ProductDto>,
     onRefreshProducts: () -> Unit,
-    onCreateProduct: (String, String, String, String, String) -> Unit,
-    onUpdateProduct: (Int, String, String, String, String, String) -> Unit,
+    onCreateProduct: (String, String, String, String, String, String, String, String) -> Unit,
+    onUpdateProduct: (Int, String, String, String, String, String, String, String, String) -> Unit,
     onDeleteProduct: (Int) -> Unit
 ) {
     var productName by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var categoryId by remember { mutableStateOf("") }
     var stock by remember { mutableStateOf("0") }
-    var description by remember { mutableStateOf("") }
+    var briefDescription by remember { mutableStateOf("") }
+    var fullDescription by remember { mutableStateOf("") }
+    var technicalSpecifications by remember { mutableStateOf("") }
+    var imageUrl by remember { mutableStateOf("") }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1042,15 +1045,30 @@ private fun ProductManagementSection(
             OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Giá") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = categoryId, onValueChange = { categoryId = it }, label = { Text("CategoryId") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = stock, onValueChange = { stock = it }, label = { Text("Stock") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Mô tả ngắn") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = imageUrl, onValueChange = { imageUrl = it }, label = { Text("Image URL") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = briefDescription, onValueChange = { briefDescription = it }, label = { Text("Mô tả ngắn") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = fullDescription, onValueChange = { fullDescription = it }, label = { Text("Mô tả chi tiết") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = technicalSpecifications, onValueChange = { technicalSpecifications = it }, label = { Text("Thông số kỹ thuật") }, modifier = Modifier.fillMaxWidth())
             Button(
                 onClick = {
-                    onCreateProduct(productName, price, categoryId, stock, description)
+                    onCreateProduct(
+                        productName,
+                        price,
+                        categoryId,
+                        stock,
+                        briefDescription,
+                        fullDescription,
+                        technicalSpecifications,
+                        imageUrl
+                    )
                     productName = ""
                     price = ""
                     categoryId = ""
                     stock = "0"
-                    description = ""
+                    briefDescription = ""
+                    fullDescription = ""
+                    technicalSpecifications = ""
+                    imageUrl = ""
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MossGreen)
@@ -1088,7 +1106,10 @@ private fun ProductManagementSection(
                                     product.price.toString(),
                                     product.categoryId.toString(),
                                     product.stock.toString(),
-                                    product.description.orEmpty()
+                                    product.briefDescription.orEmpty(),
+                                    product.fullDescription.orEmpty(),
+                                    product.technicalSpecifications.orEmpty(),
+                                    product.image.orEmpty()
                                 )
                             },
                             shape = RoundedCornerShape(10.dp),

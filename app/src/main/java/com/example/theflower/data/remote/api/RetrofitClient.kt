@@ -6,14 +6,19 @@ import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 /**
  * Enhanced Retrofit Client with Token Management
  */
 object RetrofitClient {
     
-    private const val BASE_URL_DEV = "http://10.0.2.2:5000/"
+    private const val BASE_URL_DEV = "https://10.0.2.2:7225/"
     private const val BASE_URL_PROD = "https://api.theflower.com/"
     private const val TIMEOUT_SECONDS = 30L
     
@@ -43,6 +48,10 @@ object RetrofitClient {
             .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+
+        if (isDevelopment && BASE_URL_DEV.startsWith("https://")) {
+            applyDevelopmentTlsBypass(httpClient)
+        }
         
         // Add logging interceptor for debugging
         if (isDevelopment) {
@@ -56,6 +65,22 @@ object RetrofitClient {
         httpClient.addInterceptor(AuthInterceptor())
         
         return httpClient.build()
+    }
+
+    private fun applyDevelopmentTlsBypass(httpClient: OkHttpClient.Builder) {
+        val trustAllManager = object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<out X509Certificate>, authType: String) = Unit
+            override fun checkServerTrusted(chain: Array<out X509Certificate>, authType: String) = Unit
+            override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+        }
+
+        val sslContext = SSLContext.getInstance("TLS")
+        sslContext.init(null, arrayOf<TrustManager>(trustAllManager), SecureRandom())
+
+        httpClient.sslSocketFactory(sslContext.socketFactory, trustAllManager)
+        httpClient.hostnameVerifier { hostname, _ ->
+            hostname == "10.0.2.2" || hostname == "localhost"
+        }
     }
     
     fun getApiService(): TheFlowerApiService {

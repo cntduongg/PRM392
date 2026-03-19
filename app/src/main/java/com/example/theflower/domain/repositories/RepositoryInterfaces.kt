@@ -108,7 +108,7 @@ interface IAdminRepository {
     suspend fun updateUser(token: String, userId: Int, request: UpdateAdminUserRequest): Result<AdminUserDto>
     suspend fun deleteUser(token: String, userId: Int): Result<Unit>
 
-    suspend fun createProduct(token: String, request: ProductUpsertRequest): Result<ProductDto>
-    suspend fun updateProduct(token: String, productId: Int, request: ProductUpsertRequest): Result<ProductDto>
+    suspend fun createProduct(token: String, request: ProductUpsertRequest): Result<Unit>
+    suspend fun updateProduct(token: String, productId: Int, request: UpdateProductRequest): Result<Unit>
     suspend fun deleteProduct(token: String, productId: Int): Result<Unit>
 }

@@ -20,8 +20,12 @@ class AuthRepositoryImpl(
     override suspend fun register(request: RegisterRequest): Result<AuthResponse> {
         return try {
             val backendRequest = request.copy(username = request.username.ifBlank { request.fullName })
-            val response = apiService.registerBackend(backendRequest)
-            Result.success(response)
+            val response = apiService.register(backendRequest)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -34,8 +38,12 @@ class AuthRepositoryImpl(
      */
     override suspend fun login(request: LoginRequest): Result<AuthResponse> {
         return try {
-            val response = apiService.loginBackend(request)
-            Result.success(response)
+            val response = apiService.login(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.Unauthorized(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {

@@ -4,8 +4,8 @@ import com.example.theflower.data.exceptions.ApiException
 import com.example.theflower.data.remote.api.TheFlowerApiService
 import com.example.theflower.data.remote.dtos.AdminUserDto
 import com.example.theflower.data.remote.dtos.CreateAdminUserRequest
-import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.ProductUpsertRequest
+import com.example.theflower.data.remote.dtos.UpdateProductRequest
 import com.example.theflower.data.remote.dtos.UpdateAdminUserRequest
 import com.example.theflower.domain.repositories.IAdminRepository
 import retrofit2.HttpException
@@ -55,9 +55,14 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun createProduct(token: String, request: ProductUpsertRequest): Result<ProductDto> {
+    override suspend fun createProduct(token: String, request: ProductUpsertRequest): Result<Unit> {
         return try {
-            Result.success(apiService.createProductAdmin(token, request))
+            val response = apiService.createProductAdmin(token, request)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -65,9 +70,14 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun updateProduct(token: String, productId: Int, request: ProductUpsertRequest): Result<ProductDto> {
+    override suspend fun updateProduct(token: String, productId: Int, request: UpdateProductRequest): Result<Unit> {
         return try {
-            Result.success(apiService.updateProductAdmin(token, productId, request))
+            val response = apiService.updateProductAdmin(token, productId, request)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -77,8 +87,12 @@ class AdminRepositoryImpl(
 
     override suspend fun deleteProduct(token: String, productId: Int): Result<Unit> {
         return try {
-            apiService.deleteProductAdmin(token, productId)
-            Result.success(Unit)
+            val response = apiService.deleteProductAdmin(token, productId)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {

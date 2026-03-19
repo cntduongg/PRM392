@@ -8,13 +8,14 @@ import com.google.gson.annotations.SerializedName
  */
 
 data class ApiResponse<T>(
-    val success: Boolean,
+    @SerializedName(value = "success", alternate = ["isSuccess"])
+    val success: Boolean = false,
     val data: T? = null,
-    val message: String = ""
+    val message: String? = ""
 )
 
 data class PaginatedResponse<T>(
-    val items: List<T>,
+    val items: List<T>? = emptyList(),
     val pageNumber: Int,
     val pageSize: Int,
     val totalItems: Int,
@@ -46,16 +47,16 @@ data class AuthResponse(
     @SerializedName("userId")
     val userId: Int,
     @SerializedName("email")
-    val email: String,
+    val email: String? = "",
     @SerializedName("username")
-    val username: String = "",
+    val username: String? = "",
     @SerializedName("role")
-    val role: String = "",
+    val role: String? = "",
     @SerializedName("fullName")
-    val fullName: String,
+    val fullName: String? = "",
     @SerializedName("token")
-    val accessToken: String,
-    val refreshToken: String = "",
+    val accessToken: String? = "",
+    val refreshToken: String? = "",
     val expiresIn: Int = 0
 )
 
@@ -75,8 +76,12 @@ data class ProductDto(
     val name: String,
     @SerializedName("price")
     val price: Double,
+    @SerializedName("briefDescription")
+    val briefDescription: String? = null,
     @SerializedName("fullDescription")
-    val description: String? = null,
+    val fullDescription: String? = null,
+    @SerializedName("technicalSpecifications")
+    val technicalSpecifications: String? = null,
     @SerializedName("imageUrl")
     val image: String? = null,
     val categoryId: Int,
@@ -87,7 +92,10 @@ data class ProductDto(
     val rating: Float = 0f,
     @SerializedName("reviewCount")
     val reviewCount: Int = 0
-)
+) {
+    val description: String?
+        get() = fullDescription ?: briefDescription
+}
 
 data class CategoryDto(
     @SerializedName("categoryId")
@@ -331,6 +339,27 @@ data class UpdateAdminUserRequest(
 )
 
 data class ProductUpsertRequest(
+    @SerializedName("productName")
+    val productName: String,
+    @SerializedName("briefDescription")
+    val briefDescription: String? = null,
+    @SerializedName("fullDescription")
+    val fullDescription: String? = null,
+    @SerializedName("technicalSpecifications")
+    val technicalSpecifications: String? = null,
+    @SerializedName("price")
+    val price: Double,
+    @SerializedName("imageUrl")
+    val imageUrl: String? = null,
+    @SerializedName("categoryId")
+    val categoryId: Int? = null,
+    @SerializedName("stockQuantity")
+    val stockQuantity: Int? = 0
+)
+
+data class UpdateProductRequest(
+    @SerializedName("productId")
+    val productId: Int,
     @SerializedName("productName")
     val productName: String,
     @SerializedName("briefDescription")

@@ -11,6 +11,7 @@ import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.ProductUpsertRequest
 import com.example.theflower.data.remote.dtos.RegisterRequest
 import com.example.theflower.data.remote.dtos.UpdateAdminUserRequest
+import com.example.theflower.data.remote.dtos.UpdateProductRequest
 import com.example.theflower.di.DIContainer
 import com.example.theflower.domain.repositories.IAdminRepository
 import com.example.theflower.domain.models.Product
@@ -150,22 +151,35 @@ class AppViewModel(
             clearError()
             authRepository.login(LoginRequest(email = email, password = password))
                 .onSuccess { response ->
-                    tokenManager.saveTokens(response.accessToken, response.refreshToken, response.expiresIn)
-                    tokenManager.saveUserInfo(response.userId.toString(), response.email)
+                    val accessToken = response.accessToken.orEmpty()
+                    val refreshToken = response.refreshToken.orEmpty()
+                    val userEmail = response.email.orEmpty()
+                    val userName = response.fullName.orEmpty().ifBlank { response.username.orEmpty() }
+                    val userRole = response.role.orEmpty().ifBlank { "USER" }
+                    val isAdmin = userRole.equals("ADMIN", ignoreCase = true)
+                    val targetScreen = if (isAdmin) "admin_dashboard" else "home"
+                    val targetTab = if (isAdmin) NavTab.PROFILE else NavTab.HOME
+
+                    tokenManager.saveTokens(accessToken, refreshToken, response.expiresIn)
+                    tokenManager.saveUserInfo(response.userId.toString(), userEmail)
                     _uiState.update {
                         it.copy(
                             isLoggedIn = true,
                             userId = response.userId,
-                            userName = response.fullName.ifBlank { response.username },
-                            userEmail = response.email,
-                            userRole = response.role.ifBlank { "USER" },
-                            accessToken = response.accessToken,
-                            currentScreen = "home",
-                            currentTab = NavTab.HOME
+                            userName = userName,
+                            userEmail = userEmail,
+                            userRole = userRole,
+                            accessToken = accessToken,
+                            currentScreen = targetScreen,
+                            currentTab = targetTab
                         )
                     }
                     loadProducts()
-                    loadCart()
+                    if (isAdmin) {
+                        loadAdminUsers()
+                    } else {
+                        loadCart()
+                    }
                 }
                 .onFailure {
                     setError(it.message ?: "Đăng nhập thất bại")
@@ -191,16 +205,22 @@ class AppViewModel(
             )
             authRepository.register(request)
                 .onSuccess { response ->
-                    tokenManager.saveTokens(response.accessToken, response.refreshToken, response.expiresIn)
-                    tokenManager.saveUserInfo(response.userId.toString(), response.email)
+                    val accessToken = response.accessToken.orEmpty()
+                    val refreshToken = response.refreshToken.orEmpty()
+                    val userEmail = response.email.orEmpty()
+                    val userName = response.fullName.orEmpty().ifBlank { response.username.orEmpty() }
+                    val userRole = response.role.orEmpty().ifBlank { "USER" }
+
+                    tokenManager.saveTokens(accessToken, refreshToken, response.expiresIn)
+                    tokenManager.saveUserInfo(response.userId.toString(), userEmail)
                     _uiState.update {
                         it.copy(
                             isLoggedIn = true,
                             userId = response.userId,
-                            userName = response.fullName.ifBlank { response.username },
-                            userEmail = response.email,
-                            userRole = response.role.ifBlank { "USER" },
-                            accessToken = response.accessToken,
+                            userName = userName,
+                            userEmail = userEmail,
+                            userRole = userRole,
+                            accessToken = accessToken,
                             currentScreen = "home",
                             currentTab = NavTab.HOME
                         )
@@ -241,7 +261,7 @@ class AppViewModel(
             clearError()
             productRepository.getProducts(pageNumber = 1, pageSize = 50)
                 .onSuccess { response ->
-                    _uiState.update { it.copy(products = response.items) }
+                    _uiState.update { it.copy(products = response.items.orEmpty()) }
                 }
                 .onFailure {
                     setError(it.message ?: "Không thể tải sản phẩm")
@@ -337,7 +357,7 @@ class AppViewModel(
         viewModelScope.launch {
             setLoading(true)
             orderRepository.getOrders(token)
-                .onSuccess { response -> _uiState.update { it.copy(orders = response.items) } }
+                .onSuccess { response -> _uiState.update { it.copy(orders = response.items.orEmpty()) } }
                 .onFailure { setError(it.message ?: "Không thể tải đơn hàng") }
             setLoading(false)
         }
@@ -476,7 +496,10 @@ class AppViewModel(
         price: String,
         categoryId: String,
         stock: String,
-        briefDescription: String
+        briefDescription: String,
+        fullDescription: String,
+        technicalSpecifications: String,
+        imageUrl: String
     ) {
         val token = _uiState.value.accessToken
         if (token.isBlank()) return
@@ -495,7 +518,9 @@ class AppViewModel(
                 categoryId = categoryId.toIntOrNull(),
                 stockQuantity = stock.toIntOrNull() ?: 0,
                 briefDescription = briefDescription.ifBlank { null },
-                fullDescription = briefDescription.ifBlank { null }
+                fullDescription = fullDescription.ifBlank { null },
+                technicalSpecifications = technicalSpecifications.ifBlank { null },
+                imageUrl = imageUrl.ifBlank { null }
             )
             adminRepository.createProduct(token, request)
                 .onSuccess {
@@ -513,7 +538,10 @@ class AppViewModel(
         price: String,
         categoryId: String,
         stock: String,
-        briefDescription: String
+        briefDescription: String,
+        fullDescription: String,
+        technicalSpecifications: String,
+        imageUrl: String
     ) {
         val token = _uiState.value.accessToken
         if (token.isBlank()) return
@@ -526,13 +554,16 @@ class AppViewModel(
 
         viewModelScope.launch {
             setLoading(true)
-            val request = ProductUpsertRequest(
+            val request = UpdateProductRequest(
+                productId = productId,
                 productName = productName,
                 price = parsedPrice,
                 categoryId = categoryId.toIntOrNull(),
                 stockQuantity = stock.toIntOrNull() ?: 0,
                 briefDescription = briefDescription.ifBlank { null },
-                fullDescription = briefDescription.ifBlank { null }
+                fullDescription = fullDescription.ifBlank { null },
+                technicalSpecifications = technicalSpecifications.ifBlank { null },
+                imageUrl = imageUrl.ifBlank { null }
             )
             adminRepository.updateProduct(token, productId, request)
                 .onSuccess {
