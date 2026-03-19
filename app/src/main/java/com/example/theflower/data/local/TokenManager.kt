@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -53,19 +54,11 @@ class TokenManager(private val context: Context) {
     }
     
     suspend fun getAccessToken(): String? {
-        var token: String? = null
-        context.dataStore.data.map { preferences ->
-            token = preferences[PreferencesKeys.ACCESS_TOKEN]
-        }.collect { }
-        return token
+        return context.dataStore.data.first()[PreferencesKeys.ACCESS_TOKEN]
     }
     
     suspend fun getRefreshToken(): String? {
-        var token: String? = null
-        context.dataStore.data.map { preferences ->
-            token = preferences[PreferencesKeys.REFRESH_TOKEN]
-        }.collect { }
-        return token
+        return context.dataStore.data.first()[PreferencesKeys.REFRESH_TOKEN]
     }
     
     suspend fun clearTokens() {

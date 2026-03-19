@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
     
-    private const val BASE_URL_DEV = "http://localhost:5000/"
+    private const val BASE_URL_DEV = "http://10.0.2.2:5000/"
     private const val BASE_URL_PROD = "https://api.theflower.com/"
     private const val TIMEOUT_SECONDS = 30L
     

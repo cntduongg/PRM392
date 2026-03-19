@@ -19,13 +19,18 @@ class OrderRepositoryImpl(
      */
     override suspend fun getOrders(token: String, pageNumber: Int, pageSize: Int): Result<PaginatedResponse<OrderDto>> {
         return try {
-            val response = apiService.getOrders(token, pageNumber, pageSize)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
+            val items = apiService.getOrdersBackend(token)
+            val fromIndex = ((pageNumber - 1) * pageSize).coerceAtLeast(0)
+            val toIndex = (fromIndex + pageSize).coerceAtMost(items.size)
+            val pageItems = if (fromIndex < toIndex) items.subList(fromIndex, toIndex) else emptyList()
+            val response = PaginatedResponse(
+                items = pageItems,
+                pageNumber = pageNumber,
+                pageSize = pageSize,
+                totalItems = items.size,
+                totalPages = if (items.isEmpty()) 0 else (items.size + pageSize - 1) / pageSize
+            )
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -38,13 +43,8 @@ class OrderRepositoryImpl(
      */
     override suspend fun getOrderDetail(token: String, orderId: Int): Result<OrderDto> {
         return try {
-            val response = apiService.getOrderDetail(token, orderId)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.NotFound("Order not found"))
-            }
+            val response = apiService.getOrderDetailBackend(token, orderId)
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -57,13 +57,17 @@ class OrderRepositoryImpl(
      */
     override suspend fun createOrder(token: String, request: CreateOrderRequest): Result<OrderDto> {
         return try {
-            val response = apiService.createOrder(token, request)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ValidationError(response.message))
-            }
+            val response = apiService.createOrderBackend(token, request)
+            val mappedOrder = OrderDto(
+                id = response.orderId,
+                items = emptyList(),
+                totalPrice = response.totalAmount,
+                recipientAddress = request.billingAddress,
+                status = response.orderStatus,
+                paymentMethod = response.paymentMethod,
+                createdAt = ""
+            )
+            Result.success(mappedOrder)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {

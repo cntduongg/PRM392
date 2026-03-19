@@ -24,18 +24,14 @@ class ProductRepositoryImpl(
         search: String?
     ): Result<PaginatedResponse<ProductDto>> {
         return try {
-            val response = apiService.getProducts(
+            val response = apiService.getProductsBackend(
                 pageNumber = pageNumber,
                 pageSize = pageSize,
                 categoryId = categoryId,
-                search = search
+                sortBy = if (search.isNullOrBlank()) null else "name",
+                sortOrder = "asc"
             )
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -48,13 +44,8 @@ class ProductRepositoryImpl(
      */
     override suspend fun getProductDetail(productId: Int): Result<ProductDto> {
         return try {
-            val response = apiService.getProductDetail(productId)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.NotFound("Product not found"))
-            }
+            val response = apiService.getProductDetailBackend(productId)
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {

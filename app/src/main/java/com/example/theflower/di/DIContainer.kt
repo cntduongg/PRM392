@@ -29,6 +29,7 @@ object DIContainer {
     private var notificationRepository: INotificationRepository? = null
     private var chatRepository: IChatRepository? = null
     private var userRepository: IUserRepository? = null
+    private var adminRepository: IAdminRepository? = null
     
     /**
      * Initialize DI Container with app context
@@ -142,6 +143,14 @@ object DIContainer {
     fun getUserRepository(): IUserRepository {
         return userRepository ?: UserRepositoryImpl(getApiService()).also { userRepository = it }
     }
+
+    /**
+     * Get or create AdminRepository singleton
+     * Handles: admin user/product CRUD
+     */
+    fun getAdminRepository(): IAdminRepository {
+        return adminRepository ?: AdminRepositoryImpl(getApiService()).also { adminRepository = it }
+    }
     
     /**
      * Reset all singletons (useful for testing or logout)
@@ -158,5 +167,6 @@ object DIContainer {
         notificationRepository = null
         chatRepository = null
         userRepository = null
+        adminRepository = null
     }
 }

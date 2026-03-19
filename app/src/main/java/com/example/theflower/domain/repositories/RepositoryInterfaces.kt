@@ -98,3 +98,17 @@ interface IUserRepository {
     suspend fun updateUserProfile(token: String, request: UpdateProfileRequest): Result<UserProfileDto>
     suspend fun changePassword(token: String, oldPassword: String, newPassword: String): Result<Unit>
 }
+
+/**
+ * Admin Repository Interface
+ */
+interface IAdminRepository {
+    suspend fun getUsers(token: String): Result<List<AdminUserDto>>
+    suspend fun createUser(token: String, request: CreateAdminUserRequest): Result<AdminUserDto>
+    suspend fun updateUser(token: String, userId: Int, request: UpdateAdminUserRequest): Result<AdminUserDto>
+    suspend fun deleteUser(token: String, userId: Int): Result<Unit>
+
+    suspend fun createProduct(token: String, request: ProductUpsertRequest): Result<ProductDto>
+    suspend fun updateProduct(token: String, productId: Int, request: ProductUpsertRequest): Result<ProductDto>
+    suspend fun deleteProduct(token: String, productId: Int): Result<Unit>
+}

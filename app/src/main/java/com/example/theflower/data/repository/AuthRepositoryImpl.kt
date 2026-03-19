@@ -19,13 +19,9 @@ class AuthRepositoryImpl(
      */
     override suspend fun register(request: RegisterRequest): Result<AuthResponse> {
         return try {
-            val response = apiService.register(request)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ValidationError(response.message))
-            }
+            val backendRequest = request.copy(username = request.username.ifBlank { request.fullName })
+            val response = apiService.registerBackend(backendRequest)
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -38,13 +34,8 @@ class AuthRepositoryImpl(
      */
     override suspend fun login(request: LoginRequest): Result<AuthResponse> {
         return try {
-            val response = apiService.login(request)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.Unauthorized("Invalid credentials"))
-            }
+            val response = apiService.loginBackend(request)
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -56,43 +47,13 @@ class AuthRepositoryImpl(
      * Refresh access token using refresh token
      */
     override suspend fun refreshToken(request: RefreshTokenRequest): Result<AuthResponse> {
-        return try {
-            val response = apiService.refreshToken(request)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.TokenExpired("Token refresh failed"))
-            }
-        } catch (e: HttpException) {
-            Result.failure(ApiException.handleException(e))
-        } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(errorCause = e))
-        }
+        return Result.failure(ApiException.TokenExpired("Refresh token endpoint chưa được backend hỗ trợ."))
     }
     
     /**
      * Logout user and invalidate tokens
      */
     override suspend fun logout(token: String): Result<Unit> {
-        return try {
-            val authHeader = token
-            val response = apiService.logout(authHeader)
-            
-            if (response.success) {
-                Result.success(Unit)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
-        } catch (e: HttpException) {
-            // Treat 401/403 as success for logout (already logged out)
-            if (e.code() in listOf(401, 403)) {
-                Result.success(Unit)
-            } else {
-                Result.failure(ApiException.handleException(e))
-            }
-        } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(errorCause = e))
-        }
+        return Result.success(Unit)
     }
 }

@@ -19,13 +19,8 @@ class CartRepositoryImpl(
      */
     override suspend fun getCart(token: String): Result<CartDto> {
         return try {
-            val response = apiService.getCart(token)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
+            val response = apiService.getCartBackend(token)
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -38,13 +33,8 @@ class CartRepositoryImpl(
      */
     override suspend fun addToCart(token: String, request: AddToCartRequest): Result<CartDto> {
         return try {
-            val response = apiService.addToCart(token, request)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ValidationError(response.message))
-            }
+            val response = apiService.addToCartBackend(token, request)
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -57,13 +47,8 @@ class CartRepositoryImpl(
      */
     override suspend fun removeFromCart(token: String, itemId: Int): Result<CartDto> {
         return try {
-            val response = apiService.removeFromCart(token, itemId)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
+            val response = apiService.removeFromCartBackend(token, itemId)
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -77,13 +62,8 @@ class CartRepositoryImpl(
     override suspend fun updateCartItem(token: String, itemId: Int, quantity: Int): Result<CartDto> {
         return try {
             val quantityMap = mapOf("quantity" to quantity)
-            val response = apiService.updateCartItem(token, itemId, quantityMap)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
+            val response = apiService.updateCartItemBackend(token, itemId, quantityMap)
+            Result.success(response)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -96,13 +76,8 @@ class CartRepositoryImpl(
      */
     override suspend fun clearCart(token: String): Result<Unit> {
         return try {
-            val response = apiService.clearCart(token)
-            
-            if (response.success) {
-                Result.success(Unit)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
+            apiService.clearCartBackend(token)
+            Result.success(Unit)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {

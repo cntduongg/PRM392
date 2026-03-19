@@ -1,5 +1,7 @@
 package com.example.theflower.data.remote.dtos
 
+import com.google.gson.annotations.SerializedName
+
 /**
  * ==================== COMMON ==================
  * Standard wrapper for all API responses
@@ -25,9 +27,13 @@ data class PaginatedResponse<T>(
  */
 
 data class RegisterRequest(
+    @SerializedName("username")
+    val username: String,
     val email: String,
     val password: String,
+    @SerializedName("fullName")
     val fullName: String,
+    @SerializedName("phoneNumber")
     val phoneNumber: String? = null
 )
 
@@ -37,12 +43,20 @@ data class LoginRequest(
 )
 
 data class AuthResponse(
+    @SerializedName("userId")
     val userId: Int,
+    @SerializedName("email")
     val email: String,
+    @SerializedName("username")
+    val username: String = "",
+    @SerializedName("role")
+    val role: String = "",
+    @SerializedName("fullName")
     val fullName: String,
+    @SerializedName("token")
     val accessToken: String,
-    val refreshToken: String,
-    val expiresIn: Int
+    val refreshToken: String = "",
+    val expiresIn: Int = 0
 )
 
 data class RefreshTokenRequest(
@@ -55,23 +69,33 @@ data class RefreshTokenRequest(
  */
 
 data class ProductDto(
+    @SerializedName("productId")
     val id: Int,
+    @SerializedName("productName")
     val name: String,
-    val price: Int,
-    val description: String,
-    val image: String,
+    @SerializedName("price")
+    val price: Double,
+    @SerializedName("fullDescription")
+    val description: String? = null,
+    @SerializedName("imageUrl")
+    val image: String? = null,
     val categoryId: Int,
+    @SerializedName("categoryName")
     val categoryName: String,
+    @SerializedName("stockQuantity")
     val stock: Int,
-    val rating: Float,
-    val reviewCount: Int
+    val rating: Float = 0f,
+    @SerializedName("reviewCount")
+    val reviewCount: Int = 0
 )
 
 data class CategoryDto(
+    @SerializedName("categoryId")
     val id: Int,
+    @SerializedName("categoryName")
     val name: String,
-    val description: String,
-    val image: String
+    val description: String = "",
+    val image: String = ""
 )
 
 /**
@@ -80,23 +104,28 @@ data class CategoryDto(
  */
 
 data class CartDto(
+    @SerializedName("cartId")
     val id: Int,
-    val userId: Int,
+    val userId: Int = 0,
     val items: List<CartItemDto>,
-    val totalPrice: Int,
+    val totalPrice: Double,
     val totalItems: Int,
-    val createdAt: String
+    val createdAt: String = ""
 )
 
 data class CartItemDto(
+    @SerializedName("cartItemId")
     val id: Int,
-    val cartId: Int,
+    val cartId: Int = 0,
     val productId: Int,
     val productName: String,
-    val productImage: String,
-    val productPrice: Int,
+    @SerializedName("imageUrl")
+    val productImage: String? = null,
+    @SerializedName("unitPrice")
+    val productPrice: Double,
     val quantity: Int,
-    val totalPrice: Int
+    @SerializedName("subTotal")
+    val totalPrice: Double
 )
 
 data class AddToCartRequest(
@@ -110,29 +139,60 @@ data class AddToCartRequest(
  */
 
 data class OrderDto(
+    @SerializedName("orderId")
     val id: Int,
-    val userId: Int,
-    val items: List<CartItemDto>,
-    val totalPrice: Int,
-    val recipientName: String,
-    val recipientPhone: String,
+    val userId: Int = 0,
+    @SerializedName("items")
+    val items: List<OrderItemDto>,
+    @SerializedName("totalAmount")
+    val totalPrice: Double,
+    val recipientName: String = "",
+    val recipientPhone: String = "",
+    @SerializedName("billingAddress")
     val recipientAddress: String,
     val occasion: String? = null,
     val message: String? = null,
-    val status: String,  // PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+    @SerializedName("orderStatus")
+    val status: String,
     val paymentMethod: String,
+    @SerializedName("orderDate")
     val createdAt: String,
-    val updatedAt: String
+    @SerializedName("paymentStatus")
+    val paymentStatus: String = "",
+    val updatedAt: String = ""
+)
+
+data class OrderItemDto(
+    val productId: Int,
+    val productName: String,
+    @SerializedName("imageUrl")
+    val imageUrl: String? = null,
+    @SerializedName("unitPrice")
+    val unitPrice: Double,
+    val quantity: Int,
+    @SerializedName("subTotal")
+    val subTotal: Double
 )
 
 data class CreateOrderRequest(
-    val items: List<CartItemDto>,
-    val recipientName: String,
-    val recipientPhone: String,
-    val recipientAddress: String,
-    val occasion: String? = null,
-    val message: String? = null,
-    val paymentMethod: String
+    val paymentMethod: String,
+    @SerializedName("billingAddress")
+    val billingAddress: String,
+    @SerializedName("returnUrl")
+    val returnUrl: String? = null,
+    @SerializedName("cancelUrl")
+    val cancelUrl: String? = null
+)
+
+data class CreateOrderResponseDto(
+    @SerializedName("orderId")
+    val orderId: Int,
+    @SerializedName("orderStatus")
+    val orderStatus: String,
+    val paymentMethod: String,
+    @SerializedName("totalAmount")
+    val totalAmount: Double,
+    val paymentUrl: String? = null
 )
 
 /**
@@ -202,6 +262,8 @@ data class SendChatMessageRequest(
 data class UserProfileDto(
     val id: Int,
     val email: String,
+    @SerializedName("username")
+    val username: String = "",
     val fullName: String,
     val phoneNumber: String? = null,
     val address: String? = null,
@@ -216,4 +278,73 @@ data class UpdateProfileRequest(
     val phoneNumber: String,
     val address: String,
     val avatar: String? = null
+)
+
+/**
+ * ==================== ADMIN ==================
+ * Admin dashboard DTOs
+ */
+
+data class AdminUserDto(
+    @SerializedName("userId")
+    val userId: Int,
+    @SerializedName("username")
+    val username: String,
+    @SerializedName("email")
+    val email: String,
+    @SerializedName("phoneNumber")
+    val phoneNumber: String? = null,
+    @SerializedName("address")
+    val address: String? = null,
+    @SerializedName("role")
+    val role: String
+)
+
+data class CreateAdminUserRequest(
+    @SerializedName("username")
+    val username: String,
+    @SerializedName("email")
+    val email: String,
+    @SerializedName("password")
+    val password: String,
+    @SerializedName("phoneNumber")
+    val phoneNumber: String? = null,
+    @SerializedName("address")
+    val address: String? = null,
+    @SerializedName("role")
+    val role: String = "Customer"
+)
+
+data class UpdateAdminUserRequest(
+    @SerializedName("username")
+    val username: String,
+    @SerializedName("email")
+    val email: String,
+    @SerializedName("phoneNumber")
+    val phoneNumber: String? = null,
+    @SerializedName("address")
+    val address: String? = null,
+    @SerializedName("role")
+    val role: String = "Customer",
+    @SerializedName("password")
+    val password: String? = null
+)
+
+data class ProductUpsertRequest(
+    @SerializedName("productName")
+    val productName: String,
+    @SerializedName("briefDescription")
+    val briefDescription: String? = null,
+    @SerializedName("fullDescription")
+    val fullDescription: String? = null,
+    @SerializedName("technicalSpecifications")
+    val technicalSpecifications: String? = null,
+    @SerializedName("price")
+    val price: Double,
+    @SerializedName("imageUrl")
+    val imageUrl: String? = null,
+    @SerializedName("categoryId")
+    val categoryId: Int? = null,
+    @SerializedName("stockQuantity")
+    val stockQuantity: Int? = 0
 )

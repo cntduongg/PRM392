@@ -10,6 +10,109 @@ import com.example.theflower.data.remote.dtos.*
  * All endpoints with authentication require "Authorization: Bearer {token}" header
  */
 interface TheFlowerApiService {
+    // ────── BACKEND ALIGNED ENDPOINTS (CURRENT .NET API) ────────────────────
+
+    @POST("api/auth/register")
+    suspend fun registerBackend(@Body request: RegisterRequest): AuthResponse
+
+    @POST("api/auth/login")
+    suspend fun loginBackend(@Body request: LoginRequest): AuthResponse
+
+    @GET("api/products")
+    suspend fun getProductsBackend(
+        @Query("page") pageNumber: Int = 1,
+        @Query("pageSize") pageSize: Int = 20,
+        @Query("categoryId") categoryId: Int? = null,
+        @Query("sortBy") sortBy: String? = null,
+        @Query("sortOrder") sortOrder: String? = null
+    ): PaginatedResponse<ProductDto>
+
+    @GET("api/products/{id}")
+    suspend fun getProductDetailBackend(@Path("id") productId: Int): ProductDto
+
+    @GET("api/products/categories")
+    suspend fun getCategoriesBackend(): List<CategoryDto>
+
+    @GET("api/carts")
+    suspend fun getCartBackend(@Header("Authorization") token: String): CartDto
+
+    @POST("api/carts/items")
+    suspend fun addToCartBackend(
+        @Header("Authorization") token: String,
+        @Body request: AddToCartRequest
+    ): CartDto
+
+    @DELETE("api/carts/items/{itemId}")
+    suspend fun removeFromCartBackend(
+        @Header("Authorization") token: String,
+        @Path("itemId") itemId: Int
+    ): CartDto
+
+    @PUT("api/carts/items/{itemId}")
+    suspend fun updateCartItemBackend(
+        @Header("Authorization") token: String,
+        @Path("itemId") itemId: Int,
+        @Body quantity: Map<String, Int>
+    ): CartDto
+
+    @DELETE("api/carts")
+    suspend fun clearCartBackend(@Header("Authorization") token: String)
+
+    @GET("api/orders")
+    suspend fun getOrdersBackend(@Header("Authorization") token: String): List<OrderDto>
+
+    @GET("api/orders/{id}")
+    suspend fun getOrderDetailBackend(
+        @Header("Authorization") token: String,
+        @Path("id") orderId: Int
+    ): OrderDto
+
+    @POST("api/orders")
+    suspend fun createOrderBackend(
+        @Header("Authorization") token: String,
+        @Body request: CreateOrderRequest
+    ): CreateOrderResponseDto
+
+    @GET("api/users")
+    suspend fun getUsersAdmin(@Header("Authorization") token: String): List<AdminUserDto>
+
+    @POST("api/users")
+    suspend fun createUserAdmin(
+        @Header("Authorization") token: String,
+        @Body request: CreateAdminUserRequest
+    ): AdminUserDto
+
+    @PUT("api/users/{id}")
+    suspend fun updateUserAdmin(
+        @Header("Authorization") token: String,
+        @Path("id") userId: Int,
+        @Body request: UpdateAdminUserRequest
+    ): AdminUserDto
+
+    @DELETE("api/users/{id}")
+    suspend fun deleteUserAdmin(
+        @Header("Authorization") token: String,
+        @Path("id") userId: Int
+    )
+
+    @POST("api/products")
+    suspend fun createProductAdmin(
+        @Header("Authorization") token: String,
+        @Body request: ProductUpsertRequest
+    ): ProductDto
+
+    @PUT("api/products/{id}")
+    suspend fun updateProductAdmin(
+        @Header("Authorization") token: String,
+        @Path("id") productId: Int,
+        @Body request: ProductUpsertRequest
+    ): ProductDto
+
+    @DELETE("api/products/{id}")
+    suspend fun deleteProductAdmin(
+        @Header("Authorization") token: String,
+        @Path("id") productId: Int
+    )
     
     // ────── AUTH ──────────────────────────────────────────────────────────────
     
