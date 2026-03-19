@@ -194,12 +194,17 @@ fun ProductDetailScreen(
                         .fillMaxWidth()
                         .height(100.dp)
                         .clip(RoundedCornerShape(12.dp)),
-                    placeholder = { Text("Ghi lời nhắn cho người nhận...", color = SandDark) },
+                    placeholder = { Text("Ghi lời nhắn cho người nhận...", color = PlaceholderGray) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Sand,
                         unfocusedContainerColor = Sand,
                         focusedIndicatorColor = MossGreen,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = SoilBrown,
+                        unfocusedTextColor = SoilBrown,
+                        cursorColor = MossGreen,
+                        focusedPlaceholderColor = PlaceholderGray,
+                        unfocusedPlaceholderColor = PlaceholderGray
                     )
                 )
             }

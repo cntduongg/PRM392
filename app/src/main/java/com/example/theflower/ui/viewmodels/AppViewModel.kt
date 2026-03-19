@@ -11,14 +11,17 @@ import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.ProductUpsertRequest
 import com.example.theflower.data.remote.dtos.RegisterRequest
 import com.example.theflower.data.remote.dtos.UpdateAdminUserRequest
+import com.example.theflower.data.remote.dtos.UpdateProfileRequest
 import com.example.theflower.data.remote.dtos.UpdateProductRequest
 import com.example.theflower.di.DIContainer
 import com.example.theflower.domain.repositories.IAdminRepository
 import com.example.theflower.domain.models.Product
 import com.example.theflower.domain.repositories.IAuthRepository
+import com.example.theflower.domain.repositories.ICategoryRepository
 import com.example.theflower.domain.repositories.ICartRepository
 import com.example.theflower.domain.repositories.IOrderRepository
 import com.example.theflower.domain.repositories.IProductRepository
+import com.example.theflower.domain.repositories.IUserRepository
 import com.example.theflower.ui.components.NavTab
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,10 +31,12 @@ import kotlinx.coroutines.launch
 
 class AppViewModel(
     private val authRepository: IAuthRepository = DIContainer.getAuthRepository(),
+    private val categoryRepository: ICategoryRepository = DIContainer.getCategoryRepository(),
     private val productRepository: IProductRepository = DIContainer.getProductRepository(),
     private val cartRepository: ICartRepository = DIContainer.getCartRepository(),
     private val orderRepository: IOrderRepository = DIContainer.getOrderRepository(),
     private val adminRepository: IAdminRepository = DIContainer.getAdminRepository(),
+    private val userRepository: IUserRepository = DIContainer.getUserRepository(),
     private val tokenManager: TokenManager = DIContainer.getTokenManager()
 ) : ViewModel() {
 
@@ -43,6 +48,7 @@ class AppViewModel(
 
     init {
         restoreSession()
+        loadCategories()
         loadProducts()
     }
 
@@ -50,7 +56,12 @@ class AppViewModel(
         _uiState.update { it.copy(currentTab = tab) }
         when (tab) {
             NavTab.HOME -> navigateToScreen("home")
-            NavTab.CATEGORY -> navigateToScreen("category")
+            NavTab.CATEGORY -> {
+                navigateToScreen("category")
+                if (_uiState.value.categories.isEmpty()) {
+                    loadCategories()
+                }
+            }
             NavTab.CART -> navigateToScreen("cart")
             NavTab.PROFILE -> navigateToScreen("profile")
         }
@@ -118,6 +129,7 @@ class AppViewModel(
         _uiState.update { it.copy(currentScreen = "admin_dashboard") }
         loadAdminUsers()
         loadProducts()
+        loadOrders()
     }
 
     fun setLoading(isLoading: Boolean) {
@@ -174,6 +186,7 @@ class AppViewModel(
                             currentTab = targetTab
                         )
                     }
+                    loadUserProfile(silent = true)
                     loadProducts()
                     if (isAdmin) {
                         loadAdminUsers()
@@ -225,6 +238,7 @@ class AppViewModel(
                             currentTab = NavTab.HOME
                         )
                     }
+                    loadUserProfile(silent = true)
                     loadProducts()
                     loadCart()
                 }
@@ -244,8 +258,11 @@ class AppViewModel(
                     userId = null,
                     userName = "",
                     userEmail = "",
+                    userPhone = "",
+                    userAddress = "",
                     userRole = "USER",
                     accessToken = "",
+                    categories = emptyList(),
                     cart = null,
                     orders = emptyList(),
                     currentScreen = "login",
@@ -265,6 +282,119 @@ class AppViewModel(
                 }
                 .onFailure {
                     setError(it.message ?: "Không thể tải sản phẩm")
+                }
+            setLoading(false)
+        }
+    }
+
+    fun loadCategories() {
+        viewModelScope.launch {
+            categoryRepository.getCategories()
+                .onSuccess { categories ->
+                    _uiState.update { it.copy(categories = categories) }
+                }
+                .onFailure {
+                    setError(it.message ?: "Không thể tải danh mục")
+                }
+        }
+    }
+
+    fun loadUserProfile(silent: Boolean = false) {
+        val token = _uiState.value.accessToken
+        if (token.isBlank()) return
+
+        viewModelScope.launch {
+            userRepository.getUserProfile(token)
+                .onSuccess { profile ->
+                    _uiState.update {
+                        it.copy(
+                            userName = profile.fullName.ifBlank { profile.username },
+                            userEmail = profile.email,
+                            userPhone = profile.phoneNumber.orEmpty(),
+                            userAddress = profile.address.orEmpty(),
+                            userRole = profile.role
+                        )
+                    }
+                }
+                .onFailure {
+                    if (!silent) {
+                        setError(it.message ?: "Không thể tải hồ sơ người dùng")
+                    }
+                }
+        }
+    }
+
+    fun updateProfile(fullName: String, phoneNumber: String, address: String) {
+        val token = _uiState.value.accessToken
+        if (token.isBlank()) {
+            setError("Bạn cần đăng nhập để cập nhật hồ sơ.")
+            return
+        }
+
+        if (fullName.isBlank()) {
+            setError("Họ tên không được để trống.")
+            return
+        }
+
+        viewModelScope.launch {
+            setLoading(true)
+            clearError()
+            val request = UpdateProfileRequest(
+                fullName = fullName,
+                phoneNumber = phoneNumber,
+                address = address
+            )
+            userRepository.updateUserProfile(token, request)
+                .onSuccess { profile ->
+                    _uiState.update {
+                        it.copy(
+                            userName = profile.fullName.ifBlank { profile.username },
+                            userEmail = profile.email,
+                            userPhone = profile.phoneNumber.orEmpty(),
+                            userAddress = profile.address.orEmpty(),
+                            userRole = profile.role
+                        )
+                    }
+                    clearError()
+                }
+                .onFailure {
+                    setError(it.message ?: "Cập nhật hồ sơ thất bại")
+                }
+            setLoading(false)
+        }
+    }
+
+    fun changePassword(currentPassword: String, newPassword: String, confirmPassword: String) {
+        val token = _uiState.value.accessToken
+        if (token.isBlank()) {
+            setError("Bạn cần đăng nhập để đổi mật khẩu.")
+            return
+        }
+
+        if (currentPassword.isBlank() || newPassword.isBlank() || confirmPassword.isBlank()) {
+            setError("Vui lòng nhập đầy đủ thông tin đổi mật khẩu.")
+            return
+        }
+
+        if (newPassword.length < 6) {
+            setError("Mật khẩu mới phải có ít nhất 6 ký tự.")
+            return
+        }
+
+        if (newPassword != confirmPassword) {
+            setError("Xác nhận mật khẩu không khớp.")
+            return
+        }
+
+        viewModelScope.launch {
+            setLoading(true)
+            clearError()
+            userRepository.changePassword(token, currentPassword, newPassword)
+                .onSuccess {
+                    clearError()
+                }
+                .onFailure {
+                    setError(it.message ?: "Đổi mật khẩu thất bại")
                 }
             setLoading(false)
         }
@@ -341,7 +471,7 @@ class AppViewModel(
                     loadOrders()
                     loadCart()
                     _uiState.update { it.copy(checkoutAddress = "") }
-                    setError("Đặt hàng thành công.")
+                    clearError()
                 }
                 .onFailure {
                     setError(it.message ?: "Không thể tạo đơn hàng")
@@ -375,6 +505,7 @@ class AppViewModel(
                         currentTab = NavTab.HOME
                     )
                 }
+                loadUserProfile(silent = true)
                 loadCart()
                 loadOrders()
             }
@@ -427,7 +558,7 @@ class AppViewModel(
             adminRepository.createUser(token, request)
                 .onSuccess {
                     loadAdminUsers()
-                    setError("Tạo user thành công")
+                    clearError()
                 }
                 .onFailure {
                     setError(it.message ?: "Tạo user thất bại")
@@ -466,7 +597,7 @@ class AppViewModel(
             adminRepository.updateUser(token, userId, request)
                 .onSuccess {
                     loadAdminUsers()
-                    setError("Cập nhật user thành công")
+                    clearError()
                 }
                 .onFailure {
                     setError(it.message ?: "Cập nhật user thất bại")
@@ -484,7 +615,7 @@ class AppViewModel(
             adminRepository.deleteUser(token, userId)
                 .onSuccess {
                     loadAdminUsers()
-                    setError("Đã xóa user")
+                    clearError()
                 }
                 .onFailure { setError(it.message ?: "Xóa user thất bại") }
             setLoading(false)
@@ -525,7 +656,7 @@ class AppViewModel(
             adminRepository.createProduct(token, request)
                 .onSuccess {
                     loadProducts()
-                    setError("Tạo sản phẩm thành công")
+                    clearError()
                 }
                 .onFailure { setError(it.message ?: "Tạo sản phẩm thất bại") }
             setLoading(false)
@@ -568,7 +699,7 @@ class AppViewModel(
             adminRepository.updateProduct(token, productId, request)
                 .onSuccess {
                     loadProducts()
-                    setError("Cập nhật sản phẩm thành công")
+                    clearError()
                 }
                 .onFailure { setError(it.message ?: "Cập nhật sản phẩm thất bại") }
             setLoading(false)
@@ -584,7 +715,7 @@ class AppViewModel(
             adminRepository.deleteProduct(token, productId)
                 .onSuccess {
                     loadProducts()
-                    setError("Đã xóa sản phẩm")
+                    clearError()
                 }
                 .onFailure { setError(it.message ?: "Xóa sản phẩm thất bại") }
             setLoading(false)
