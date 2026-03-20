@@ -1,9 +1,11 @@
 package com.example.theflower.data.repository
 
-import com.example.theflower.domain.repositories.ICartRepository
-import com.example.theflower.data.remote.api.TheFlowerApiService
-import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.data.exceptions.ApiException
+import com.example.theflower.data.remote.api.TheFlowerApiService
+import com.example.theflower.data.remote.dtos.AddToCartRequest
+import com.example.theflower.data.remote.dtos.CartDto
+import com.example.theflower.data.remote.dtos.UpdateCartItemDto
+import com.example.theflower.domain.repositories.ICartRepository
 import retrofit2.HttpException
 
 /**
@@ -19,8 +21,12 @@ class CartRepositoryImpl(
      */
     override suspend fun getCart(token: String): Result<CartDto> {
         return try {
-            val response = apiService.getCartBackend(token)
-            Result.success(response)
+            val response = apiService.getCart(token)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ServerError(500, response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -33,8 +39,12 @@ class CartRepositoryImpl(
      */
     override suspend fun addToCart(token: String, request: AddToCartRequest): Result<CartDto> {
         return try {
-            val response = apiService.addToCartBackend(token, request)
-            Result.success(response)
+            val response = apiService.addToCart(token, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -45,10 +55,14 @@ class CartRepositoryImpl(
     /**
      * Remove item from cart
      */
-    override suspend fun removeFromCart(token: String, itemId: Int): Result<CartDto> {
+    override suspend fun removeFromCart(token: String, cartItemId: String): Result<CartDto> {
         return try {
-            val response = apiService.removeFromCartBackend(token, itemId)
-            Result.success(response)
+            val response = apiService.removeFromCart(token, cartItemId)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -59,11 +73,14 @@ class CartRepositoryImpl(
     /**
      * Update quantity of cart item
      */
-    override suspend fun updateCartItem(token: String, itemId: Int, quantity: Int): Result<CartDto> {
+    override suspend fun updateCartItem(token: String, cartItemId: String, quantity: Int): Result<CartDto> {
         return try {
-            val quantityMap = mapOf("quantity" to quantity)
-            val response = apiService.updateCartItemBackend(token, itemId, quantityMap)
-            Result.success(response)
+            val response = apiService.updateCartItem(token, cartItemId, UpdateCartItemDto(quantity))
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -76,8 +93,12 @@ class CartRepositoryImpl(
      */
     override suspend fun clearCart(token: String): Result<Unit> {
         return try {
-            apiService.clearCartBackend(token)
-            Result.success(Unit)
+            val response = apiService.clearCart(token)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {

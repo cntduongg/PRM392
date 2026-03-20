@@ -1,4 +1,4 @@
-package com.example.theflower.data
+﻿package com.example.theflower.data
 
 import com.example.theflower.domain.models.CartItem
 import com.example.theflower.domain.models.Notification
@@ -8,80 +8,80 @@ import com.example.theflower.domain.models.User
 
 object MockData {
     val currentUser = User(
-        id = 1,
-        name = "Nguyễn Hòa",
+        id = "1",
+        name = "Nguyá»…n HÃ²a",
         email = "hoa@example.com",
         phone = "0901234567",
-        address = "123 Đường Tây Hồ, Hà Nội"
+        address = "123 ÄÆ°á»ng TÃ¢y Há»“, HÃ  Ná»™i"
     )
 
     val occasions = listOf(
-        Occasion(1, "Sinh nhật", "🎂", "#F5E6D3"),
-        Occasion(2, "Tình yêu", "💕", "#E8C4A0"),
-        Occasion(3, "Tốt nghiệp", "🎓", "#D4B5A0"),
-        Occasion(4, "Cảm ơn", "🙏", "#E0D5C0"),
-        Occasion(5, "Tặng mẹ", "👩", "#F0D4B8"),
-        Occasion(6, "Chỉ vì thích", "✨", "#E8D4B8")
+        Occasion("1", "Sinh nháº­t", "ðŸŽ‚", "#F5E6D3"),
+        Occasion("2", "TÃ¬nh yÃªu", "ðŸ’•", "#E8C4A0"),
+        Occasion("3", "Tá»‘t nghiá»‡p", "ðŸŽ“", "#D4B5A0"),
+        Occasion("4", "Cáº£m Æ¡n", "ðŸ™", "#E0D5C0"),
+        Occasion("5", "Táº·ng máº¹", "ðŸ‘©", "#F0D4B8"),
+        Occasion("6", "Chá»‰ vÃ¬ thÃ­ch", "âœ¨", "#E8D4B8")
     )
 
     val products = listOf(
         Product(
-            id = 1,
-            name = "Hoa Hồng Đỏ Premium",
+            id = "1",
+            name = "Hoa Há»“ng Äá» Premium",
             price = 299000,
             image = "https://via.placeholder.com/300x400/E8C4A0/3D2B1F?text=Rose",
-            origin = "🌱 Đà Lạt",
-            description = "Bó 20 cây hoa hồng đỏ tươi tắn, hương thơm nhẹ nhàng",
+            origin = "ðŸŒ± ÄÃ  Láº¡t",
+            description = "BÃ³ 20 cÃ¢y hoa há»“ng Ä‘á» tÆ°Æ¡i táº¯n, hÆ°Æ¡ng thÆ¡m nháº¹ nhÃ ng",
             stemCount = listOf(10, 20, 30),
-            category = "Hoa Hồng"
+            category = "Hoa Há»“ng"
         ),
         Product(
-            id = 2,
+            id = "2",
             name = "Hoa Tulip Mix",
             price = 249000,
             image = "https://via.placeholder.com/300x400/E8C4A0/3D2B1F?text=Tulip",
-            origin = "🌱 Đà Lạt",
-            description = "Bó hoa Tulip với các màu sắc tươi sáng và bắt mắt",
+            origin = "ðŸŒ± ÄÃ  Láº¡t",
+            description = "BÃ³ hoa Tulip vá»›i cÃ¡c mÃ u sáº¯c tÆ°Æ¡i sÃ¡ng vÃ  báº¯t máº¯t",
             stemCount = listOf(10, 20, 30),
             category = "Hoa Tulip"
         ),
         Product(
-            id = 3,
-            name = "Hoa Mặt Trời",
+            id = "3",
+            name = "Hoa Máº·t Trá»i",
             price = 199000,
             image = "https://via.placeholder.com/300x400/E8C4A0/3D2B1F?text=Sunflower",
-            origin = "🌱 Đà Lạt",
-            description = "Hoa Mặt Trời vàng rực rỡ, tượng trưng cho sự lạc quan",
+            origin = "ðŸŒ± ÄÃ  Láº¡t",
+            description = "Hoa Máº·t Trá»i vÃ ng rá»±c rá»¡, tÆ°á»£ng trÆ°ng cho sá»± láº¡c quan",
             stemCount = listOf(5, 10, 15),
-            category = "Hoa Mặt Trời"
+            category = "Hoa Máº·t Trá»i"
         ),
         Product(
-            id = 4,
-            name = "Hoa Cẩm Tú Cầu",
+            id = "4",
+            name = "Hoa Cáº©m TÃº Cáº§u",
             price = 179000,
             image = "https://via.placeholder.com/300x400/E8C4A0/3D2B1F?text=Hydrangea",
-            origin = "🌱 Đà Lạt",
-            description = "Bó hoa Cẩm Tú Cầu màu tím lãng mạn",
+            origin = "ðŸŒ± ÄÃ  Láº¡t",
+            description = "BÃ³ hoa Cáº©m TÃº Cáº§u mÃ u tÃ­m lÃ£ng máº¡n",
             stemCount = listOf(3, 5, 7),
-            category = "Hoa Cẩm Tú Cầu"
+            category = "Hoa Cáº©m TÃº Cáº§u"
         ),
         Product(
-            id = 5,
-            name = "Hoa Lan Hồ Điệp",
+            id = "5",
+            name = "Hoa Lan Há»“ Äiá»‡p",
             price = 349000,
             image = "https://via.placeholder.com/300x400/E8C4A0/3D2B1F?text=Orchid",
-            origin = "🌱 Đà Lạt",
-            description = "Hoa Lan Hồ Điệp sang trọng, bền lâu",
+            origin = "ðŸŒ± ÄÃ  Láº¡t",
+            description = "Hoa Lan Há»“ Äiá»‡p sang trá»ng, bá»n lÃ¢u",
             stemCount = listOf(5, 10, 15),
             category = "Hoa Lan"
         ),
         Product(
-            id = 6,
-            name = "Bó Hoa Lẫn Mixed",
+            id = "6",
+            name = "BÃ³ Hoa Láº«n Mixed",
             price = 399000,
             image = "https://via.placeholder.com/300x400/E8C4A0/3D2B1F?text=Mixed",
-            origin = "🌱 Đà Lạt",
-            description = "Bó hoa lẫn nhiều loại, tạo sự phối hợp độc đáo",
+            origin = "ðŸŒ± ÄÃ  Láº¡t",
+            description = "BÃ³ hoa láº«n nhiá»u loáº¡i, táº¡o sá»± phá»‘i há»£p Ä‘á»™c Ä‘Ã¡o",
             stemCount = listOf(20, 30, 40),
             category = "Mixed"
         )
@@ -89,13 +89,13 @@ object MockData {
 
     val cartItems = listOf(
         CartItem(
-            id = 1,
+            id = "1",
             product = products[0],
             quantity = 20,
-            message = "Tặng em với yêu thương 💕"
+            message = "Táº·ng em vá»›i yÃªu thÆ°Æ¡ng ðŸ’•"
         ),
         CartItem(
-            id = 2,
+            id = "2",
             product = products[2],
             quantity = 10,
             message = ""
@@ -104,23 +104,23 @@ object MockData {
 
     val notifications = listOf(
         Notification(
-            id = 1,
-            title = "Đơn hàng #1012 đã được xác nhận",
-            message = "Đơn hàng của bạn đã được nhân viên xác nhận và sẽ sớm được giao",
+            id = "1",
+            title = "ÄÆ¡n hÃ ng #1012 Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n",
+            message = "ÄÆ¡n hÃ ng cá»§a báº¡n Ä‘Ã£ Ä‘Æ°á»£c nhÃ¢n viÃªn xÃ¡c nháº­n vÃ  sáº½ sá»›m Ä‘Æ°á»£c giao",
             type = "success",
             createdAt = System.currentTimeMillis() - 3600000
         ),
         Notification(
-            id = 2,
-            title = "Khuyến mãi mới từ The Flower",
-            message = "Giảm 20% cho đơn hàng trên 500k. Hãy chọn ngay hoa yêu thích!",
+            id = "2",
+            title = "Khuyáº¿n mÃ£i má»›i tá»« The Flower",
+            message = "Giáº£m 20% cho Ä‘Æ¡n hÃ ng trÃªn 500k. HÃ£y chá»n ngay hoa yÃªu thÃ­ch!",
             type = "info",
             createdAt = System.currentTimeMillis() - 7200000
         ),
         Notification(
-            id = 3,
-            title = "Giao hàng thành công",
-            message = "Đơn hàng #1000 đã được giao thành công. Cảm ơn bạn!",
+            id = "3",
+            title = "Giao hÃ ng thÃ nh cÃ´ng",
+            message = "ÄÆ¡n hÃ ng #1000 Ä‘Ã£ Ä‘Æ°á»£c giao thÃ nh cÃ´ng. Cáº£m Æ¡n báº¡n!",
             type = "success",
             createdAt = System.currentTimeMillis() - 86400000,
             isRead = true
@@ -128,8 +128,9 @@ object MockData {
     )
 
     val storeLocations = listOf(
-        Pair("10.7769, 106.6966", "The Flower - Chi nhánh Tây Hồ"),
-        Pair("10.7882, 106.7507", "The Flower - Chi nhánh Quận 1"),
-        Pair("10.8109, 106.6736", "The Flower - Chi nhánh Thủ Đức")
+        Pair("10.7769, 106.6966", "The Flower - Chi nhÃ¡nh TÃ¢y Há»“"),
+        Pair("10.7882, 106.7507", "The Flower - Chi nhÃ¡nh Quáº­n 1"),
+        Pair("10.8109, 106.6736", "The Flower - Chi nhÃ¡nh Thá»§ Äá»©c")
     )
 }
+

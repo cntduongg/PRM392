@@ -1,9 +1,11 @@
 package com.example.theflower.data.repository
 
-import com.example.theflower.domain.repositories.IChatRepository
-import com.example.theflower.data.remote.api.TheFlowerApiService
-import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.data.exceptions.ApiException
+import com.example.theflower.data.remote.api.TheFlowerApiService
+import com.example.theflower.data.remote.dtos.ChatMessageDto
+import com.example.theflower.data.remote.dtos.SendChatMessageRequest
+import com.example.theflower.data.remote.dtos.SendMessageDto
+import com.example.theflower.domain.repositories.IChatRepository
 import retrofit2.HttpException
 
 /**
@@ -19,8 +21,7 @@ class ChatRepositoryImpl(
      */
     override suspend fun getChatConversations(token: String): Result<List<ChatMessageDto>> {
         return try {
-            val response = apiService.getChatConversations(token)
-            
+            val response = apiService.getChatMessages(token, page = 1, pageSize = 50)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -36,12 +37,13 @@ class ChatRepositoryImpl(
     /**
      * Get messages from specific conversation
      */
-    override suspend fun getConversationMessages(token: String, conversationId: Int): Result<List<ChatMessageDto>> {
+    override suspend fun getConversationMessages(token: String, conversationId: String): Result<List<ChatMessageDto>> {
         return try {
-            val response = apiService.getConversationMessages(token, conversationId)
-            
+            val response = apiService.getChatMessages(token, page = 1, pageSize = 100)
             if (response.success && response.data != null) {
-                Result.success(response.data)
+                Result.success(
+                    response.data.filter { it.conversationId == null || it.conversationId == conversationId }
+                )
             } else {
                 Result.failure(ApiException.NotFound("Conversation not found"))
             }
@@ -60,8 +62,7 @@ class ChatRepositoryImpl(
         request: SendChatMessageRequest
     ): Result<ChatMessageDto> {
         return try {
-            val response = apiService.sendChatMessage(token, request)
-            
+            val response = apiService.sendChatMessage(token, SendMessageDto(request.message))
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {

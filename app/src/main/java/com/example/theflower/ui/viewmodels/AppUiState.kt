@@ -19,7 +19,7 @@ data class AppUiState(
     val isLoggedIn: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val userId: Int? = null,
+    val userId: String? = null,
     val userName: String = "",
     val userEmail: String = "",
     val userPhone: String = "",

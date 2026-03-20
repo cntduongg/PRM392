@@ -1,9 +1,12 @@
 package com.example.theflower.data.repository
 
-import com.example.theflower.domain.repositories.IAuthRepository
-import com.example.theflower.data.remote.api.TheFlowerApiService
-import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.data.exceptions.ApiException
+import com.example.theflower.data.remote.api.TheFlowerApiService
+import com.example.theflower.data.remote.dtos.AuthResponse
+import com.example.theflower.data.remote.dtos.LoginRequest
+import com.example.theflower.data.remote.dtos.RefreshTokenRequest
+import com.example.theflower.data.remote.dtos.RegisterRequest
+import com.example.theflower.domain.repositories.IAuthRepository
 import retrofit2.HttpException
 
 /**
@@ -19,8 +22,13 @@ class AuthRepositoryImpl(
      */
     override suspend fun register(request: RegisterRequest): Result<AuthResponse> {
         return try {
-            val backendRequest = request.copy(username = request.username.ifBlank { request.fullName })
-            val response = apiService.register(backendRequest)
+            val normalizedRequest = request.copy(
+                username = request.username.trim(),
+                email = request.email.trim(),
+                phoneNumber = request.phoneNumber?.trim()?.takeIf { it.isNotEmpty() },
+                address = request.address?.trim()?.takeIf { it.isNotEmpty() }
+            )
+            val response = apiService.register(normalizedRequest)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -38,7 +46,7 @@ class AuthRepositoryImpl(
      */
     override suspend fun login(request: LoginRequest): Result<AuthResponse> {
         return try {
-            val response = apiService.login(request)
+            val response = apiService.login(request.copy(email = request.email.trim()))
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {

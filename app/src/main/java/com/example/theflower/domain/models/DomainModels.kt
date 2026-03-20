@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 
 @Immutable
 data class User(
-    val id: Int = 1,
+    val id: String = "1",
     val name: String = "Nguyễn Hòa",
     val email: String = "hoa@example.com",
     val phone: String = "0901234567",
@@ -14,7 +14,7 @@ data class User(
 
 @Immutable
 data class Product(
-    val id: Int,
+    val id: String,
     val name: String,
     val price: Int, // in VND
     val image: String,
@@ -28,7 +28,7 @@ data class Product(
 
 @Immutable
 data class CartItem(
-    val id: Int,
+    val id: String,
     val product: Product,
     val quantity: Int, // number of stems
     val message: String = "",
@@ -37,7 +37,7 @@ data class CartItem(
 
 @Immutable
 data class Occasion(
-    val id: Int,
+    val id: String,
     val name: String,
     val emoji: String,
     val color: String // Hex color code
@@ -45,7 +45,7 @@ data class Occasion(
 
 @Immutable
 data class Order(
-    val id: Int,
+    val id: String,
     val items: List<CartItem>,
     val totalPrice: Int,
     val recipientName: String = "",
@@ -58,7 +58,7 @@ data class Order(
 
 @Immutable
 data class Notification(
-    val id: Int,
+    val id: String,
     val title: String,
     val message: String,
     val type: String, // order, delivery, chat, promotion
@@ -75,8 +75,8 @@ data class LocationPoint(
 
 @Immutable
 data class ChatMessage(
-    val id: Int,
-    val senderId: Int,
+    val id: String,
+    val senderId: String,
     val senderName: String,
     val message: String,
     val timestamp: Long,

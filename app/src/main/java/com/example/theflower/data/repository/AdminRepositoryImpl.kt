@@ -16,7 +16,12 @@ class AdminRepositoryImpl(
 
     override suspend fun getUsers(token: String): Result<List<AdminUserDto>> {
         return try {
-            Result.success(apiService.getUsersAdmin(token))
+            val response = apiService.getUsersAdmin(token)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ServerError(500, response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -26,7 +31,12 @@ class AdminRepositoryImpl(
 
     override suspend fun createUser(token: String, request: CreateAdminUserRequest): Result<AdminUserDto> {
         return try {
-            Result.success(apiService.createUserAdmin(token, request))
+            val response = apiService.createUserAdmin(token, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -34,9 +44,14 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun updateUser(token: String, userId: Int, request: UpdateAdminUserRequest): Result<AdminUserDto> {
+    override suspend fun updateUser(token: String, userId: String, request: UpdateAdminUserRequest): Result<AdminUserDto> {
         return try {
-            Result.success(apiService.updateUserAdmin(token, userId, request))
+            val response = apiService.updateUserAdmin(token, userId, request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -44,10 +59,14 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun deleteUser(token: String, userId: Int): Result<Unit> {
+    override suspend fun deleteUser(token: String, userId: String): Result<Unit> {
         return try {
-            apiService.deleteUserAdmin(token, userId)
-            Result.success(Unit)
+            val response = apiService.deleteUserAdmin(token, userId)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -70,7 +89,7 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun updateProduct(token: String, productId: Int, request: UpdateProductRequest): Result<Unit> {
+    override suspend fun updateProduct(token: String, productId: String, request: UpdateProductRequest): Result<Unit> {
         return try {
             val response = apiService.updateProductAdmin(token, productId, request)
             if (response.success) {
@@ -85,7 +104,7 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun deleteProduct(token: String, productId: Int): Result<Unit> {
+    override suspend fun deleteProduct(token: String, productId: String): Result<Unit> {
         return try {
             val response = apiService.deleteProductAdmin(token, productId)
             if (response.success) {

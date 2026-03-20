@@ -1,4 +1,4 @@
-package com.example.theflower.ui.navigation
+﻿package com.example.theflower.ui.navigation
 
 import android.content.Intent
 import androidx.compose.foundation.background
@@ -74,9 +74,14 @@ fun AppNavigation(viewModel: AppViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val shouldHideUnauthorizedMessage =
+        uiState.errorMessage?.contains("Unauthorized", ignoreCase = true) == true
+    val visibleErrorMessage = uiState.errorMessage?.takeUnless {
+        it.contains("Unauthorized", ignoreCase = true)
+    }
 
     LaunchedEffect(uiState.errorMessage) {
-        if (!uiState.errorMessage.isNullOrBlank()) {
+        if (!uiState.errorMessage.isNullOrBlank() && !shouldHideUnauthorizedMessage) {
             snackBarHostState.showSnackbar(uiState.errorMessage!!)
         }
     }
@@ -84,7 +89,7 @@ fun AppNavigation(viewModel: AppViewModel) {
     if (!uiState.isLoggedIn) {
         AuthFlow(
             currentScreen = uiState.currentScreen,
-            errorMessage = uiState.errorMessage,
+            errorMessage = visibleErrorMessage,
             onLogin = viewModel::login,
             onRegister = viewModel::register,
             onGoToRegister = viewModel::navigateToRegister,
@@ -128,7 +133,7 @@ fun AppNavigation(viewModel: AppViewModel) {
             products = uiState.products,
             searchQuery = uiState.searchQuery,
             cart = uiState.cart,
-            errorMessage = uiState.errorMessage,
+            errorMessage = visibleErrorMessage,
             userName = uiState.userName,
             userEmail = uiState.userEmail,
             userPhone = uiState.userPhone,
@@ -195,7 +200,7 @@ private fun AuthFlow(
         ) {
             HeroHeader(
                 title = "The Flower",
-                subtitle = "Tặng hoa — tặng cả cảm xúc"
+                subtitle = "Tặng hoa - tặng cả cảm xúc"
             )
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -233,8 +238,8 @@ private fun MainAppLayout(
     onTabClick: (NavTab) -> Unit,
     onSearchChange: (String) -> Unit,
     onProductClick: (ProductDto) -> Unit,
-    onAddToCart: (Int) -> Unit,
-    onRemoveCartItem: (Int) -> Unit,
+    onAddToCart: (String) -> Unit,
+    onRemoveCartItem: (String) -> Unit,
     onCheckoutAddressChange: (String) -> Unit,
     onCreateOrder: () -> Unit,
     onViewOrders: () -> Unit,
@@ -288,7 +293,9 @@ private fun MainAppLayout(
 
             NavTab.PROFILE -> ProfileApiScreen(
                 modifier = Modifier.padding(padding),
-                errorMessage = errorMessage,
+                errorMessage = errorMessage?.takeUnless {
+                    it.contains("Unauthorized", ignoreCase = true)
+                },
                 userName = userName,
                 userEmail = userEmail,
                 userPhone = userPhone,
@@ -479,7 +486,7 @@ private fun ProductListApiScreen(
     products: List<ProductDto>,
     onSearchChange: (String) -> Unit,
     onProductClick: (ProductDto) -> Unit,
-    onAddToCart: (Int) -> Unit,
+    onAddToCart: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
     Column(
@@ -556,7 +563,7 @@ private fun ProductListItem(
                     .background(WarmPeach, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("🌷")
+                Text("ðŸŒ·")
             }
 
             Spacer(modifier = Modifier.width(10.dp))
@@ -582,7 +589,7 @@ private fun ProductListItem(
 private fun ProductDetailApiScreen(
     product: ProductDto?,
     onBack: () -> Unit,
-    onAddToCart: (Int, Int) -> Unit
+    onAddToCart: (String, Int) -> Unit
 ) {
     var quantityText by remember { mutableStateOf("1") }
 
@@ -658,7 +665,7 @@ private fun CartApiScreen(
     checkoutAddress: String,
     onCheckoutAddressChange: (String) -> Unit,
     onCreateOrder: () -> Unit,
-    onRemoveItem: (Int) -> Unit,
+    onRemoveItem: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
     val items = cart?.items.orEmpty()
@@ -716,7 +723,7 @@ private fun CartApiScreen(
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MossGreen)
                         ) {
-                            Text("Xóa")
+                            Text("XÃ³a")
                         }
                     }
                 }
@@ -865,20 +872,39 @@ private fun ProfileApiScreen(
     ) {
         Text("Tài khoản", style = MaterialTheme.typography.headlineSmall, color = SoilBrown)
 
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Sand)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text("👤 ${if (userName.isBlank()) "Người dùng" else userName}", style = MaterialTheme.typography.titleMedium, color = SoilBrown)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("✉️ ${if (userEmail.isBlank()) "(chưa có)" else userEmail}", style = MaterialTheme.typography.bodyMedium, color = SandDark)
-                if (userPhone.isNotBlank()) {
-                    Text("📞 $userPhone", style = MaterialTheme.typography.bodySmall, color = SandDark)
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Sand)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(if (userName.isBlank()) "Nguoi dung" else userName, style = MaterialTheme.typography.titleMedium, color = SoilBrown)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(if (userEmail.isBlank()) "(chua co)" else userEmail, style = MaterialTheme.typography.bodyMedium, color = SandDark)
+                    if (userPhone.isNotBlank()) {
+                        Text(userPhone, style = MaterialTheme.typography.bodySmall, color = SandDark)
+                    }
+                    if (userAddress.isNotBlank()) {
+                        Text(userAddress, style = MaterialTheme.typography.bodySmall, color = SandDark)
+                    }
                 }
-                if (userAddress.isNotBlank()) {
-                    Text("📍 $userAddress", style = MaterialTheme.typography.bodySmall, color = SandDark)
-                }
+            }
+
+            Button(
+                onClick = onLogout,
+                modifier = Modifier
+                    .width(104.dp)
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SandDark),
+                shape = RoundedCornerShape(14.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+            ) {
+                Text("Logout", color = PaperWhite, textAlign = TextAlign.Center)
             }
         }
 
@@ -1027,16 +1053,6 @@ private fun ProfileApiScreen(
             }
         }
 
-        Button(
-            onClick = onLogout,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Sand),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Đăng xuất", color = SoilBrown)
-        }
     }
 }
 
@@ -1051,11 +1067,11 @@ private fun AdminDashboardScreen(
     onRefreshProducts: () -> Unit,
     onRefreshOrders: () -> Unit,
     onCreateUser: (String, String, String, String, String, String) -> Unit,
-    onUpdateUser: (Int, String, String, String, String, String, String) -> Unit,
-    onDeleteUser: (Int) -> Unit,
+    onUpdateUser: (String, String, String, String, String, String, String) -> Unit,
+    onDeleteUser: (String) -> Unit,
     onCreateProduct: (String, String, String, String, String, String, String, String) -> Unit,
-    onUpdateProduct: (Int, String, String, String, String, String, String, String, String) -> Unit,
-    onDeleteProduct: (Int) -> Unit
+    onUpdateProduct: (String, String, String, String, String, String, String, String, String) -> Unit,
+    onDeleteProduct: (String) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -1223,7 +1239,7 @@ private fun AdminOverviewSection(
             if (selectedOption == "Tất cả" || selectedOption == "Sản phẩm") {
                 item {
                     OverviewStatCard(
-                        title = "Thống kê Sản phẩm",
+                        title = "Thống kê sản phẩm",
                         lines = listOf(
                             "Tổng sản phẩm: ${products.size}",
                             "Tổng tồn kho: $totalStock",
@@ -1357,8 +1373,8 @@ private fun UserManagementSection(
     errorMessage: String?,
     onRefreshUsers: () -> Unit,
     onCreateUser: (String, String, String, String, String, String) -> Unit,
-    onUpdateUser: (Int, String, String, String, String, String, String) -> Unit,
-    onDeleteUser: (Int) -> Unit
+    onUpdateUser: (String, String, String, String, String, String, String) -> Unit,
+    onDeleteUser: (String) -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -1470,7 +1486,7 @@ private fun UserManagementSection(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = SandDark)
                         ) {
-                            Text("Xóa")
+                            Text("XÃ³a")
                         }
                     }
                 }
@@ -1485,8 +1501,8 @@ private fun ProductManagementSection(
     errorMessage: String?,
     onRefreshProducts: () -> Unit,
     onCreateProduct: (String, String, String, String, String, String, String, String) -> Unit,
-    onUpdateProduct: (Int, String, String, String, String, String, String, String, String) -> Unit,
-    onDeleteProduct: (Int) -> Unit
+    onUpdateProduct: (String, String, String, String, String, String, String, String, String) -> Unit,
+    onDeleteProduct: (String) -> Unit
 ) {
     var productName by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
@@ -1603,7 +1619,7 @@ private fun ProductManagementSection(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = SandDark)
                         ) {
-                            Text("Xóa")
+                            Text("XÃ³a")
                         }
                     }
                 }
@@ -1638,5 +1654,5 @@ private fun ErrorNote(message: String) {
 }
 
 private fun formatCurrency(value: Double): String {
-    return "₫${value.roundToInt()}"
+    return "â‚«${value.roundToInt()}"
 }

@@ -6,6 +6,7 @@ import com.example.theflower.data.local.TokenManager
 import com.example.theflower.data.remote.dtos.AddToCartRequest
 import com.example.theflower.data.remote.dtos.CreateAdminUserRequest
 import com.example.theflower.data.remote.dtos.CreateOrderRequest
+import com.example.theflower.data.remote.dtos.ChangeUserPasswordDto
 import com.example.theflower.data.remote.dtos.LoginRequest
 import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.ProductUpsertRequest
@@ -53,6 +54,11 @@ class AppViewModel(
     }
 
     fun selectTab(tab: NavTab) {
+        if (tab == NavTab.PROFILE && !_uiState.value.isLoggedIn) {
+            navigateToLogin()
+            return
+        }
+
         _uiState.update { it.copy(currentTab = tab) }
         when (tab) {
             NavTab.HOME -> navigateToScreen("home")
@@ -173,7 +179,7 @@ class AppViewModel(
                     val targetTab = if (isAdmin) NavTab.PROFILE else NavTab.HOME
 
                     tokenManager.saveTokens(accessToken, refreshToken, response.expiresIn)
-                    tokenManager.saveUserInfo(response.userId.toString(), userEmail)
+                    tokenManager.saveUserInfo(response.userId, userEmail)
                     _uiState.update {
                         it.copy(
                             isLoggedIn = true,
@@ -213,8 +219,7 @@ class AppViewModel(
             val request = RegisterRequest(
                 username = name,
                 email = email,
-                password = password,
-                fullName = name
+                password = password
             )
             authRepository.register(request)
                 .onSuccess { response ->
@@ -225,7 +230,7 @@ class AppViewModel(
                     val userRole = response.role.orEmpty().ifBlank { "USER" }
 
                     tokenManager.saveTokens(accessToken, refreshToken, response.expiresIn)
-                    tokenManager.saveUserInfo(response.userId.toString(), userEmail)
+                    tokenManager.saveUserInfo(response.userId, userEmail)
                     _uiState.update {
                         it.copy(
                             isLoggedIn = true,
@@ -389,7 +394,13 @@ class AppViewModel(
         viewModelScope.launch {
             setLoading(true)
             clearError()
-            userRepository.changePassword(token, currentPassword, newPassword)
+            userRepository.changePassword(
+                token,
+                ChangeUserPasswordDto(
+                    oldPassword = currentPassword,
+                    newPassword = newPassword
+                )
+            )
                 .onSuccess {
                     clearError()
                 }
@@ -400,7 +411,7 @@ class AppViewModel(
         }
     }
 
-    fun addToCart(productId: Int, quantity: Int = 1) {
+    fun addToCart(productId: String, quantity: Int = 1) {
         val token = _uiState.value.accessToken
         if (token.isBlank()) {
             setError("Bạn cần đăng nhập để thêm vào giỏ hàng.")
@@ -435,7 +446,7 @@ class AppViewModel(
         }
     }
 
-    fun removeCartItem(itemId: Int) {
+    fun removeCartItem(itemId: String) {
         val token = _uiState.value.accessToken
         if (token.isBlank()) return
 
@@ -568,7 +579,7 @@ class AppViewModel(
     }
 
     fun updateAdminUser(
-        userId: Int,
+        userId: String,
         username: String,
         email: String,
         phoneNumber: String,
@@ -606,7 +617,7 @@ class AppViewModel(
         }
     }
 
-    fun deleteAdminUser(userId: Int) {
+    fun deleteAdminUser(userId: String) {
         val token = _uiState.value.accessToken
         if (token.isBlank()) return
 
@@ -646,7 +657,7 @@ class AppViewModel(
             val request = ProductUpsertRequest(
                 productName = productName,
                 price = parsedPrice,
-                categoryId = categoryId.toIntOrNull(),
+                categoryId = categoryId.ifBlank { null },
                 stockQuantity = stock.toIntOrNull() ?: 0,
                 briefDescription = briefDescription.ifBlank { null },
                 fullDescription = fullDescription.ifBlank { null },
@@ -664,7 +675,7 @@ class AppViewModel(
     }
 
     fun updateAdminProduct(
-        productId: Int,
+        productId: String,
         productName: String,
         price: String,
         categoryId: String,
@@ -689,7 +700,7 @@ class AppViewModel(
                 productId = productId,
                 productName = productName,
                 price = parsedPrice,
-                categoryId = categoryId.toIntOrNull(),
+                categoryId = categoryId.ifBlank { null },
                 stockQuantity = stock.toIntOrNull() ?: 0,
                 briefDescription = briefDescription.ifBlank { null },
                 fullDescription = fullDescription.ifBlank { null },
@@ -706,7 +717,7 @@ class AppViewModel(
         }
     }
 
-    fun deleteAdminProduct(productId: Int) {
+    fun deleteAdminProduct(productId: String) {
         val token = _uiState.value.accessToken
         if (token.isBlank()) return
 

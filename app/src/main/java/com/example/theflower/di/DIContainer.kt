@@ -2,8 +2,8 @@ package com.example.theflower.di
 
 import android.content.Context
 import com.example.theflower.data.remote.api.RetrofitClient
-import com.example.theflower.data.local.TokenManager
 import com.example.theflower.data.remote.api.TheFlowerApiService
+import com.example.theflower.data.local.TokenManager
 import com.example.theflower.ui.viewmodels.AppViewModel
 import com.example.theflower.data.repository.*
 import com.example.theflower.domain.repositories.*
@@ -151,7 +151,7 @@ object DIContainer {
     fun getAdminRepository(): IAdminRepository {
         return adminRepository ?: AdminRepositoryImpl(getApiService()).also { adminRepository = it }
     }
-    
+
     /**
      * Reset all singletons (useful for testing or logout)
      */

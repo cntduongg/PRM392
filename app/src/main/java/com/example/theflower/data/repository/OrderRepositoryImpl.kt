@@ -1,9 +1,11 @@
 package com.example.theflower.data.repository
 
-import com.example.theflower.domain.repositories.IOrderRepository
-import com.example.theflower.data.remote.api.TheFlowerApiService
-import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.data.exceptions.ApiException
+import com.example.theflower.data.remote.api.TheFlowerApiService
+import com.example.theflower.data.remote.dtos.CreateOrderRequest
+import com.example.theflower.data.remote.dtos.OrderDto
+import com.example.theflower.data.remote.dtos.PaginatedResponse
+import com.example.theflower.domain.repositories.IOrderRepository
 import retrofit2.HttpException
 
 /**
@@ -19,18 +21,22 @@ class OrderRepositoryImpl(
      */
     override suspend fun getOrders(token: String, pageNumber: Int, pageSize: Int): Result<PaginatedResponse<OrderDto>> {
         return try {
-            val items = apiService.getOrdersBackend(token)
+            val response = apiService.getOrders(token)
+            val items = if (response.success) response.data.orEmpty() else emptyList()
+            if (!response.success) {
+                return Result.failure(ApiException.ServerError(500, response.message))
+            }
             val fromIndex = ((pageNumber - 1) * pageSize).coerceAtLeast(0)
             val toIndex = (fromIndex + pageSize).coerceAtMost(items.size)
             val pageItems = if (fromIndex < toIndex) items.subList(fromIndex, toIndex) else emptyList()
-            val response = PaginatedResponse(
+            val paginatedResponse = PaginatedResponse(
                 items = pageItems,
                 pageNumber = pageNumber,
                 pageSize = pageSize,
                 totalItems = items.size,
                 totalPages = if (items.isEmpty()) 0 else (items.size + pageSize - 1) / pageSize
             )
-            Result.success(response)
+            Result.success(paginatedResponse)
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -41,10 +47,14 @@ class OrderRepositoryImpl(
     /**
      * Get order details by ID
      */
-    override suspend fun getOrderDetail(token: String, orderId: Int): Result<OrderDto> {
+    override suspend fun getOrderDetail(token: String, orderId: String): Result<OrderDto> {
         return try {
-            val response = apiService.getOrderDetailBackend(token, orderId)
-            Result.success(response)
+            val response = apiService.getOrderDetail(token, orderId)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.NotFound("Order not found"))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -57,17 +67,21 @@ class OrderRepositoryImpl(
      */
     override suspend fun createOrder(token: String, request: CreateOrderRequest): Result<OrderDto> {
         return try {
-            val response = apiService.createOrderBackend(token, request)
-            val mappedOrder = OrderDto(
-                id = response.orderId,
-                items = emptyList(),
-                totalPrice = response.totalAmount,
-                recipientAddress = request.billingAddress,
-                status = response.orderStatus,
-                paymentMethod = response.paymentMethod,
-                createdAt = ""
-            )
-            Result.success(mappedOrder)
+            val response = apiService.createOrder(token, request)
+            if (response.success && response.data != null) {
+                val mappedOrder = OrderDto(
+                    id = response.data.orderId,
+                    items = emptyList(),
+                    totalPrice = response.data.totalAmount,
+                    recipientAddress = request.billingAddress,
+                    status = response.data.orderStatus,
+                    paymentMethod = response.data.paymentMethod,
+                    createdAt = ""
+                )
+                Result.success(mappedOrder)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))
         } catch (e: Exception) {
@@ -78,19 +92,7 @@ class OrderRepositoryImpl(
     /**
      * Cancel existing order
      */
-    override suspend fun cancelOrder(token: String, orderId: Int): Result<OrderDto> {
-        return try {
-            val response = apiService.cancelOrder(token, orderId)
-            
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
-            }
-        } catch (e: HttpException) {
-            Result.failure(ApiException.handleException(e))
-        } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(errorCause = e))
-        }
+    override suspend fun cancelOrder(token: String, orderId: String): Result<OrderDto> {
+        return Result.failure(ApiException.ValidationError("Order cancellation is not defined in the current swagger spec."))
     }
 }

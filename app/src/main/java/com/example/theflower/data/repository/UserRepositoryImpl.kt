@@ -1,9 +1,11 @@
 package com.example.theflower.data.repository
 
-import com.example.theflower.domain.repositories.IUserRepository
-import com.example.theflower.data.remote.api.TheFlowerApiService
-import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.data.exceptions.ApiException
+import com.example.theflower.data.remote.api.TheFlowerApiService
+import com.example.theflower.data.remote.dtos.ChangeUserPasswordDto
+import com.example.theflower.data.remote.dtos.UpdateProfileRequest
+import com.example.theflower.data.remote.dtos.UserProfileDto
+import com.example.theflower.domain.repositories.IUserRepository
 import retrofit2.HttpException
 
 /**
@@ -55,14 +57,10 @@ class UserRepositoryImpl(
     /**
      * Change user password
      */
-    override suspend fun changePassword(token: String, oldPassword: String, newPassword: String): Result<Unit> {
+    override suspend fun changePassword(token: String, request: ChangeUserPasswordDto): Result<Unit> {
         return try {
-            val request = mapOf(
-                "oldPassword" to oldPassword,
-                "newPassword" to newPassword
-            )
             val response = apiService.changePassword(token, request)
-            
+
             if (response.success) {
                 Result.success(Unit)
             } else {
