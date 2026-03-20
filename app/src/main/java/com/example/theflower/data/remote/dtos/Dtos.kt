@@ -8,9 +8,11 @@ import com.google.gson.annotations.SerializedName
  */
 
 data class ApiResponse<T>(
-    @SerializedName(value = "isSuccess", alternate = ["success"])
+    @SerializedName(value = "isSuccess", alternate = ["success", "IsSuccess"])
     val success: Boolean = false,
+    @SerializedName(value = "data", alternate = ["Data"])
     val data: T? = null,
+    @SerializedName(value = "message", alternate = ["Message"])
     val message: String? = null
 )
 

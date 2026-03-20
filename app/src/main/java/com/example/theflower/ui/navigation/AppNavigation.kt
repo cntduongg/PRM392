@@ -3,6 +3,7 @@
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,9 +13,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,13 +49,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.theflower.data.remote.dtos.CartDto
 import com.example.theflower.data.remote.dtos.AdminUserDto
+import com.example.theflower.data.remote.dtos.CategoryDto
 import com.example.theflower.data.remote.dtos.OrderDto
 import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.ProductCatalogActivity
@@ -103,12 +111,29 @@ fun AppNavigation(viewModel: AppViewModel) {
         "detail" -> ProductDetailApiScreen(
             product = uiState.selectedProductDto,
             onBack = viewModel::navigateBack,
-            onAddToCart = { productId, quantity -> viewModel.addToCart(productId, quantity) }
+            pendingOrder = uiState.pendingOrder,
+            onAddToCart = { productId, quantity -> viewModel.addToCart(productId, quantity) },
+            onPayPendingOrder = viewModel::createPaymentForPendingOrder
         )
 
         "orders" -> OrdersApiScreen(
             orders = uiState.orders,
-            onBack = viewModel::navigateBack
+            pendingOrder = uiState.pendingOrder,
+            onBack = viewModel::navigateBack,
+            onPayPendingOrder = viewModel::createPaymentForPendingOrder
+        )
+
+        "category_detail" -> CategoryProductsScreen(
+            category = uiState.selectedCategory,
+            products = uiState.products,
+            currentTab = uiState.currentTab,
+            cartItemCount = uiState.cart?.totalItems ?: 0,
+            pendingOrder = uiState.pendingOrder,
+            onBack = viewModel::navigateBack,
+            onTabClick = viewModel::selectTab,
+            onProductClick = viewModel::navigateToProductDetail,
+            onAddToCart = { productId -> viewModel.addToCart(productId) },
+            onPayPendingOrder = viewModel::createPaymentForPendingOrder
         )
 
         "admin_dashboard" -> AdminDashboardScreen(
@@ -133,21 +158,26 @@ fun AppNavigation(viewModel: AppViewModel) {
             products = uiState.products,
             searchQuery = uiState.searchQuery,
             cart = uiState.cart,
+            pendingOrder = uiState.pendingOrder,
             errorMessage = visibleErrorMessage,
             userName = uiState.userName,
             userEmail = uiState.userEmail,
             userPhone = uiState.userPhone,
             userAddress = uiState.userAddress,
-            categoryCount = uiState.categories.size,
+            categories = uiState.categories,
             userRole = uiState.userRole,
             checkoutAddress = uiState.checkoutAddress,
             onTabClick = viewModel::selectTab,
             onSearchChange = viewModel::updateSearchQuery,
             onProductClick = viewModel::navigateToProductDetail,
+            onCategoryClick = viewModel::navigateToCategoryDetail,
             onAddToCart = { productId -> viewModel.addToCart(productId) },
             onRemoveCartItem = viewModel::removeCartItem,
+            onUpdateCartItem = viewModel::updateCartItemQuantity,
+            onClearCart = viewModel::clearCart,
             onCheckoutAddressChange = viewModel::updateCheckoutAddress,
             onCreateOrder = viewModel::createOrder,
+            onPayPendingOrder = viewModel::createPaymentForPendingOrder,
             onViewOrders = viewModel::navigateToOrders,
             onOpenAdminDashboard = viewModel::navigateToAdminDashboard,
             onOpenCustomerProductActivity = {
@@ -227,21 +257,26 @@ private fun MainAppLayout(
     products: List<ProductDto>,
     searchQuery: String,
     cart: CartDto?,
+    pendingOrder: OrderDto?,
     errorMessage: String?,
     userName: String,
     userEmail: String,
     userPhone: String,
     userAddress: String,
-    categoryCount: Int,
+    categories: List<CategoryDto>,
     userRole: String,
     checkoutAddress: String,
     onTabClick: (NavTab) -> Unit,
     onSearchChange: (String) -> Unit,
     onProductClick: (ProductDto) -> Unit,
+    onCategoryClick: (CategoryDto) -> Unit,
     onAddToCart: (String) -> Unit,
     onRemoveCartItem: (String) -> Unit,
+    onUpdateCartItem: (String, Int) -> Unit,
+    onClearCart: () -> Unit,
     onCheckoutAddressChange: (String) -> Unit,
     onCreateOrder: () -> Unit,
+    onPayPendingOrder: () -> Unit,
     onViewOrders: () -> Unit,
     onOpenAdminDashboard: () -> Unit,
     onOpenCustomerProductActivity: () -> Unit,
@@ -265,20 +300,38 @@ private fun MainAppLayout(
         containerColor = PaperWhite,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            BottomNavBar(currentTab = currentTab, onTabClick = onTabClick)
+            Column {
+                if (pendingOrder != null) {
+                    PendingOrderBar(
+                        order = pendingOrder,
+                        onPay = onPayPendingOrder
+                    )
+                }
+                BottomNavBar(
+                    currentTab = currentTab,
+                    cartItemCount = cart?.totalItems ?: 0,
+                    onTabClick = onTabClick
+                )
+            }
         }
     ) { padding ->
         when (currentTab) {
-            NavTab.HOME,
-            NavTab.CATEGORY -> ProductListApiScreen(
+            NavTab.HOME -> ProductListApiScreen(
                 modifier = Modifier.padding(padding),
-                title = if (currentTab == NavTab.HOME) "Sản phẩm nổi bật" else "Danh mục sản phẩm ($categoryCount)",
+                title = "Sản phẩm nổi bật",
                 searchQuery = searchQuery,
                 products = filteredProducts,
                 onSearchChange = onSearchChange,
                 onProductClick = onProductClick,
                 onAddToCart = onAddToCart,
                 onRefresh = onRefreshProducts
+            )
+
+            NavTab.CATEGORY -> CategoryListScreen(
+                modifier = Modifier.padding(padding),
+                categories = categories,
+                products = products,
+                onCategoryClick = onCategoryClick
             )
 
             NavTab.CART -> CartApiScreen(
@@ -288,6 +341,8 @@ private fun MainAppLayout(
                 onCheckoutAddressChange = onCheckoutAddressChange,
                 onCreateOrder = onCreateOrder,
                 onRemoveItem = onRemoveCartItem,
+                onUpdateItemQuantity = onUpdateCartItem,
+                onClearCart = onClearCart,
                 onRefresh = onRefreshCart
             )
 
@@ -539,6 +594,183 @@ private fun ProductListApiScreen(
 }
 
 @Composable
+private fun CategoryListScreen(
+    modifier: Modifier = Modifier,
+    categories: List<CategoryDto>,
+    products: List<ProductDto>,
+    onCategoryClick: (CategoryDto) -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = "Danh mục sản phẩm",
+            style = MaterialTheme.typography.headlineSmall,
+            color = SoilBrown
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (categories.isEmpty()) {
+            EmptyState(message = "Không có danh mục")
+            return
+        }
+
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(categories) { category ->
+                CategoryListItem(
+                    category = category,
+                    productCount = products.count { it.categoryId == category.id },
+                    onClick = { onCategoryClick(category) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryListItem(
+    category: CategoryDto,
+    productCount: Int,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Sand)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "» ${category.name}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = SoilBrown,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                if (category.description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = category.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SandDark,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "($productCount)",
+                style = MaterialTheme.typography.bodyMedium,
+                color = SandDark
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryProductsScreen(
+    category: CategoryDto?,
+    products: List<ProductDto>,
+    currentTab: NavTab,
+    cartItemCount: Int,
+    pendingOrder: OrderDto?,
+    onBack: () -> Unit,
+    onTabClick: (NavTab) -> Unit,
+    onProductClick: (ProductDto) -> Unit,
+    onAddToCart: (String) -> Unit,
+    onPayPendingOrder: () -> Unit
+) {
+    val categoryProducts = products.filter { product ->
+        category != null && product.categoryId == category.id
+    }
+
+    Scaffold(
+        containerColor = PaperWhite,
+        bottomBar = {
+            Column {
+                if (pendingOrder != null) {
+                    PendingOrderBar(order = pendingOrder, onPay = onPayPendingOrder)
+                }
+                BottomNavBar(
+                    currentTab = currentTab,
+                    cartItemCount = cartItemCount,
+                    onTabClick = onTabClick
+                )
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "←",
+                    modifier = Modifier.clickable(onClick = onBack),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = SoilBrown
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = category?.name ?: "Danh mục",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = SoilBrown
+                    )
+                    Text(
+                        text = "${categoryProducts.size} sản phẩm",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SandDark
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (category == null) {
+                EmptyState(message = "Không tìm thấy danh mục")
+                return@Column
+            }
+
+            if (categoryProducts.isEmpty()) {
+                EmptyState(message = "Danh mục này chưa có sản phẩm")
+                return@Column
+            }
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.heightIn(min = 0.dp)
+            ) {
+                items(categoryProducts) { product ->
+                    ProductListItem(
+                        product = product,
+                        onClick = { onProductClick(product) },
+                        onAdd = { onAddToCart(product.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ProductListItem(
     product: ProductDto,
     onClick: () -> Unit,
@@ -563,13 +795,26 @@ private fun ProductListItem(
                     .background(WarmPeach, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("ðŸŒ·")
+                Text("\uD83C\uDF37")
             }
 
             Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(product.name, style = MaterialTheme.typography.titleSmall, color = SoilBrown)
                 Text(product.categoryName, style = MaterialTheme.typography.bodySmall, color = SandDark)
+                val summaryText = product.briefDescription
+                    ?.takeIf { it.isNotBlank() }
+                    ?: product.fullDescription?.takeIf { it.isNotBlank() }
+                if (summaryText != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = summaryText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SandDark,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(formatCurrency(product.price), style = MaterialTheme.typography.titleMedium, color = MossGreen)
             }
@@ -589,7 +834,9 @@ private fun ProductListItem(
 private fun ProductDetailApiScreen(
     product: ProductDto?,
     onBack: () -> Unit,
-    onAddToCart: (String, Int) -> Unit
+    pendingOrder: OrderDto?,
+    onAddToCart: (String, Int) -> Unit,
+    onPayPendingOrder: () -> Unit
 ) {
     var quantityText by remember { mutableStateOf("1") }
 
@@ -598,12 +845,20 @@ private fun ProductDetailApiScreen(
         return
     }
 
-    Scaffold(containerColor = PaperWhite) { padding ->
+    Scaffold(
+        containerColor = PaperWhite,
+        bottomBar = {
+            if (pendingOrder != null) {
+                PendingOrderBar(order = pendingOrder, onPay = onPayPendingOrder)
+            }
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Button(
                 onClick = onBack,
@@ -612,6 +867,10 @@ private fun ProductDetailApiScreen(
             ) {
                 Text("Quay lại", color = SoilBrown)
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            ProductImageHero(imageUrl = product.image, productName = product.name)
 
             Spacer(modifier = Modifier.height(14.dp))
             Card(
@@ -627,7 +886,20 @@ private fun ProductDetailApiScreen(
                     Spacer(modifier = Modifier.height(10.dp))
                     HorizontalDivider()
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text(product.description ?: "Không có mô tả", style = MaterialTheme.typography.bodyMedium)
+                    ProductInfoSection(
+                        title = "Mô tả ngắn",
+                        content = product.briefDescription ?: product.categoryName
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ProductInfoSection(
+                        title = "Mô tả chi tiết",
+                        content = product.fullDescription ?: product.description
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ProductInfoSection(
+                        title = "Điểm nổi bật của hoa",
+                        content = product.technicalSpecifications
+                    )
                 }
             }
 
@@ -659,6 +931,151 @@ private fun ProductDetailApiScreen(
 }
 
 @Composable
+private fun ProductImageHero(
+    imageUrl: String?,
+    productName: String
+) {
+    if (!imageUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = productName,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .border(1.dp, SandDark.copy(alpha = 0.25f), RoundedCornerShape(18.dp)),
+        )
+        return
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(WarmPeach),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "\uD83C\uDF38",
+            style = MaterialTheme.typography.displaySmall
+        )
+    }
+}
+
+@Composable
+private fun ProductThumbnail(
+    imageUrl: String?,
+    label: String
+) {
+    if (!imageUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = label,
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(WarmPeach)
+        )
+        return
+    }
+
+    Box(
+        modifier = Modifier
+            .size(60.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(WarmPeach),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = "\uD83C\uDF38")
+    }
+}
+
+@Composable
+private fun QuantityButton(
+    label: String,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = SoilBrown)
+    ) {
+        Text(label)
+    }
+}
+
+@Composable
+private fun ProductInfoSection(
+    title: String,
+    content: String?
+) {
+    if (content.isNullOrBlank()) return
+
+    val formattedLines = remember(content) { formatProductInfoLines(content) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = SoilBrown,
+            fontWeight = FontWeight.SemiBold
+        )
+        formattedLines.forEach { line ->
+            Text(
+                text = if (formattedLines.size == 1) line else "• $line",
+                style = MaterialTheme.typography.bodyMedium,
+                color = SandDark
+            )
+        }
+    }
+}
+
+@Composable
+private fun PendingOrderBar(
+    order: OrderDto,
+    onPay: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SoilBrown)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Đơn hàng chờ thanh toán",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = PaperWhite
+                )
+                Text(
+                    text = "#${order.id.take(8)}  •  ${formatCurrency(order.totalPrice)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PaperWhite.copy(alpha = 0.85f)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Button(
+                onClick = onPay,
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MossGreen)
+            ) {
+                Text("Thanh toán")
+            }
+        }
+    }
+}
+
+@Composable
 private fun CartApiScreen(
     modifier: Modifier = Modifier,
     cart: CartDto?,
@@ -666,6 +1083,8 @@ private fun CartApiScreen(
     onCheckoutAddressChange: (String) -> Unit,
     onCreateOrder: () -> Unit,
     onRemoveItem: (String) -> Unit,
+    onUpdateItemQuantity: (String, Int) -> Unit,
+    onClearCart: () -> Unit,
     onRefresh: () -> Unit
 ) {
     val items = cart?.items.orEmpty()
@@ -681,12 +1100,21 @@ private fun CartApiScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Giỏ hàng", style = MaterialTheme.typography.headlineSmall, color = SoilBrown)
-            Button(
-                onClick = onRefresh,
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Sand)
-            ) {
-                Text("Làm mới", color = SoilBrown)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onClearCart,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SoilBrown)
+                ) {
+                    Text("Xóa giỏ")
+                }
+                Button(
+                    onClick = onRefresh,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Sand)
+                ) {
+                    Text("Làm mới", color = SoilBrown)
+                }
             }
         }
 
@@ -713,17 +1141,51 @@ private fun CartApiScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(item.productName, style = MaterialTheme.typography.titleSmall, color = SoilBrown)
-                            Text("Số lượng: ${item.quantity}", style = MaterialTheme.typography.bodySmall, color = SandDark)
-                            Text(formatCurrency(item.totalPrice), style = MaterialTheme.typography.titleSmall, color = MossGreen)
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ProductThumbnail(
+                                imageUrl = item.productImage,
+                                label = item.productName
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.productName, style = MaterialTheme.typography.titleSmall, color = SoilBrown)
+                                Text(
+                                    formatCurrency(item.productPrice),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SandDark
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    QuantityButton(
+                                        label = "-",
+                                        onClick = { onUpdateItemQuantity(item.id, item.quantity - 1) }
+                                    )
+                                    Text(
+                                        text = item.quantity.toString(),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = SoilBrown
+                                    )
+                                    QuantityButton(
+                                        label = "+",
+                                        onClick = { onUpdateItemQuantity(item.id, item.quantity + 1) }
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(formatCurrency(item.totalPrice), style = MaterialTheme.typography.titleSmall, color = MossGreen)
+                            }
                         }
                         Button(
                             onClick = { onRemoveItem(item.id) },
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MossGreen)
                         ) {
-                            Text("XÃ³a")
+                            Text("Xóa")
                         }
                     }
                 }
@@ -733,9 +1195,7 @@ private fun CartApiScreen(
         Spacer(modifier = Modifier.height(10.dp))
         Card(colors = CardDefaults.cardColors(containerColor = Sand), shape = RoundedCornerShape(14.dp)) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text("Tổng thanh toán", style = MaterialTheme.typography.titleMedium, color = SoilBrown)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(formatCurrency(cart?.totalPrice ?: 0.0), style = MaterialTheme.typography.headlineSmall, color = MossGreen)
+                Text("Thông tin thanh toán", style = MaterialTheme.typography.titleMedium, color = SoilBrown)
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = checkoutAddress,
@@ -745,6 +1205,24 @@ private fun CartApiScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(10.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        "Tổng tiền cần trả",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SandDark
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        formatCurrency(cart?.totalPrice ?: 0.0),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MossGreen,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     onClick = onCreateOrder,
                     modifier = Modifier
@@ -753,7 +1231,7 @@ private fun CartApiScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MossGreen)
                 ) {
-                    Text("Đặt hàng (COD)")
+                    Text("Tạo đơn hàng")
                 }
             }
         }
@@ -763,9 +1241,18 @@ private fun CartApiScreen(
 @Composable
 private fun OrdersApiScreen(
     orders: List<OrderDto>,
-    onBack: () -> Unit
+    pendingOrder: OrderDto?,
+    onBack: () -> Unit,
+    onPayPendingOrder: () -> Unit
 ) {
-    Scaffold(containerColor = PaperWhite) { padding ->
+    Scaffold(
+        containerColor = PaperWhite,
+        bottomBar = {
+            if (pendingOrder != null) {
+                PendingOrderBar(order = pendingOrder, onPay = onPayPendingOrder)
+            }
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -1654,5 +2141,19 @@ private fun ErrorNote(message: String) {
 }
 
 private fun formatCurrency(value: Double): String {
-    return "â‚«${value.roundToInt()}"
+    return "\u20AB${value.roundToInt()}"
+}
+
+private fun formatProductInfoLines(content: String): List<String> {
+    val normalized = content
+        .replace("\r\n", "\n")
+        .replace("•", "\n")
+        .replace(";", "\n")
+        .replace("|", "\n")
+
+    return normalized
+        .split('\n')
+        .map { it.trim().trimStart('-', '*', '•').trim() }
+        .filter { it.isNotEmpty() }
+        .ifEmpty { listOf(content.trim()) }
 }

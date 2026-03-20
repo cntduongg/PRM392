@@ -2,8 +2,17 @@ package com.example.theflower.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -11,7 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.example.theflower.ui.theme.*
+import com.example.theflower.ui.theme.MossGreen
+import com.example.theflower.ui.theme.PaperWhite
+import com.example.theflower.ui.theme.SandDark
 
 enum class NavTab {
     HOME, CATEGORY, CART, PROFILE
@@ -20,6 +31,7 @@ enum class NavTab {
 @Composable
 fun BottomNavBar(
     currentTab: NavTab,
+    cartItemCount: Int = 0,
     onTabClick: (NavTab) -> Unit
 ) {
     Row(
@@ -32,26 +44,27 @@ fun BottomNavBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         NavTabButton(
-            icon = "🏠",
-            label = "Trang chủ",
+            icon = "\uD83C\uDFE0",
+            label = "Trang ch?",
             isSelected = currentTab == NavTab.HOME,
             onClick = { onTabClick(NavTab.HOME) }
         )
         NavTabButton(
-            icon = "🌸",
-            label = "Danh mục",
+            icon = "\uD83C\uDF38",
+            label = "Danh m?c",
             isSelected = currentTab == NavTab.CATEGORY,
             onClick = { onTabClick(NavTab.CATEGORY) }
         )
         NavTabButton(
-            icon = "🛒",
-            label = "Giỏ hàng",
+            icon = "\uD83D\uDED2",
+            label = "Gi? h�ng",
             isSelected = currentTab == NavTab.CART,
+            badgeCount = cartItemCount,
             onClick = { onTabClick(NavTab.CART) }
         )
         NavTabButton(
-            icon = "👤",
-            label = "Tôi",
+            icon = "\uD83D\uDC64",
+            label = "T�i",
             isSelected = currentTab == NavTab.PROFILE,
             onClick = { onTabClick(NavTab.PROFILE) }
         )
@@ -63,6 +76,7 @@ fun NavTabButton(
     icon: String,
     label: String,
     isSelected: Boolean,
+    badgeCount: Int = 0,
     onClick: () -> Unit
 ) {
     Column(
@@ -76,7 +90,17 @@ fun NavTabButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(icon, fontSize = MaterialTheme.typography.headlineSmall.fontSize)
+        BadgedBox(
+            badge = {
+                if (badgeCount > 0) {
+                    Badge {
+                        Text(text = badgeCount.coerceAtMost(99).toString())
+                    }
+                }
+            }
+        ) {
+            Text(icon, fontSize = MaterialTheme.typography.headlineSmall.fontSize)
+        }
         if (isSelected) {
             Box(
                 modifier = Modifier

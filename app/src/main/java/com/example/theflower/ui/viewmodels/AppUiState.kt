@@ -16,6 +16,7 @@ data class AppUiState(
     val currentScreen: String = "login",
     val selectedProduct: Product? = null,
     val selectedProductDto: ProductDto? = null,
+    val selectedCategory: CategoryDto? = null,
     val isLoggedIn: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
@@ -31,6 +32,7 @@ data class AppUiState(
     val searchQuery: String = "",
     val cart: CartDto? = null,
     val orders: List<OrderDto> = emptyList(),
+    val pendingOrder: OrderDto? = null,
     val adminUsers: List<AdminUserDto> = emptyList(),
     val checkoutAddress: String = ""
 )

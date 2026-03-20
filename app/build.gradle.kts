@@ -78,4 +78,7 @@ dependencies {
 
     // Logger (view in Android Studio Logcat)
     implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // Image loading
+    implementation("io.coil-kt:coil-compose:2.7.0")
 }

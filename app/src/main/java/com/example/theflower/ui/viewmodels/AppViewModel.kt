@@ -6,7 +6,10 @@ import com.example.theflower.data.local.TokenManager
 import com.example.theflower.data.remote.dtos.AddToCartRequest
 import com.example.theflower.data.remote.dtos.CreateAdminUserRequest
 import com.example.theflower.data.remote.dtos.CreateOrderRequest
+import com.example.theflower.data.remote.dtos.CreatePaymentRequest
 import com.example.theflower.data.remote.dtos.ChangeUserPasswordDto
+import com.example.theflower.data.remote.dtos.CartDto
+import com.example.theflower.data.remote.dtos.CategoryDto
 import com.example.theflower.data.remote.dtos.LoginRequest
 import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.ProductUpsertRequest
@@ -21,6 +24,7 @@ import com.example.theflower.domain.repositories.IAuthRepository
 import com.example.theflower.domain.repositories.ICategoryRepository
 import com.example.theflower.domain.repositories.ICartRepository
 import com.example.theflower.domain.repositories.IOrderRepository
+import com.example.theflower.domain.repositories.IPaymentRepository
 import com.example.theflower.domain.repositories.IProductRepository
 import com.example.theflower.domain.repositories.IUserRepository
 import com.example.theflower.ui.components.NavTab
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class AppViewModel(
     private val authRepository: IAuthRepository = DIContainer.getAuthRepository(),
@@ -36,6 +41,7 @@ class AppViewModel(
     private val productRepository: IProductRepository = DIContainer.getProductRepository(),
     private val cartRepository: ICartRepository = DIContainer.getCartRepository(),
     private val orderRepository: IOrderRepository = DIContainer.getOrderRepository(),
+    private val paymentRepository: IPaymentRepository = DIContainer.getPaymentRepository(),
     private val adminRepository: IAdminRepository = DIContainer.getAdminRepository(),
     private val userRepository: IUserRepository = DIContainer.getUserRepository(),
     private val tokenManager: TokenManager = DIContainer.getTokenManager()
@@ -53,23 +59,55 @@ class AppViewModel(
         loadProducts()
     }
 
+    private suspend fun resolveAccessToken(): String {
+        val stateToken = _uiState.value.accessToken
+        if (stateToken.isNotBlank()) return stateToken
+
+        val storedToken = tokenManager.getAccessToken().orEmpty()
+        if (storedToken.isNotBlank()) {
+            _uiState.update {
+                it.copy(
+                    isLoggedIn = true,
+                    accessToken = storedToken
+                )
+            }
+        }
+        return storedToken
+    }
+
     fun selectTab(tab: NavTab) {
-        if (tab == NavTab.PROFILE && !_uiState.value.isLoggedIn) {
+        if ((tab == NavTab.PROFILE || tab == NavTab.CART) && !_uiState.value.isLoggedIn) {
             navigateToLogin()
             return
         }
 
-        _uiState.update { it.copy(currentTab = tab) }
+        _uiState.update {
+            it.copy(
+                currentTab = tab,
+                selectedCategory = if (tab == NavTab.CATEGORY) it.selectedCategory else null
+            )
+        }
         when (tab) {
-            NavTab.HOME -> navigateToScreen("home")
+            NavTab.HOME -> {
+                _uiState.update { it.copy(selectedCategory = null) }
+                navigateToScreen("home")
+            }
             NavTab.CATEGORY -> {
+                _uiState.update { it.copy(selectedCategory = null) }
                 navigateToScreen("category")
                 if (_uiState.value.categories.isEmpty()) {
                     loadCategories()
                 }
             }
-            NavTab.CART -> navigateToScreen("cart")
-            NavTab.PROFILE -> navigateToScreen("profile")
+            NavTab.CART -> {
+                _uiState.update { it.copy(selectedCategory = null) }
+                navigateToScreen("cart")
+                loadCart()
+            }
+            NavTab.PROFILE -> {
+                _uiState.update { it.copy(selectedCategory = null) }
+                navigateToScreen("profile")
+            }
         }
     }
 
@@ -94,9 +132,24 @@ class AppViewModel(
                 selectedProductDto = product
             )
         }
+        loadProductDetail(product.id)
+    }
+
+    fun navigateToCategoryDetail(category: CategoryDto) {
+        _uiState.update {
+            it.copy(
+                currentTab = NavTab.CATEGORY,
+                currentScreen = "category_detail",
+                selectedCategory = category
+            )
+        }
     }
 
     fun navigateToCart() {
+        if (!_uiState.value.isLoggedIn) {
+            navigateToLogin()
+            return
+        }
         _uiState.update { it.copy(currentScreen = "cart") }
         selectTab(NavTab.CART)
         loadCart()
@@ -117,11 +170,31 @@ class AppViewModel(
         _navigationEvent.value = NavigationEvent.NavigateBack
         when (_uiState.value.currentScreen) {
             "detail" -> {
-                _uiState.update { it.copy(currentScreen = "home", selectedProduct = null, selectedProductDto = null) }
-                selectTab(NavTab.HOME)
+                if (_uiState.value.currentTab == NavTab.CATEGORY && _uiState.value.selectedCategory != null) {
+                    _uiState.update {
+                        it.copy(
+                            currentScreen = "category_detail",
+                            selectedProduct = null,
+                            selectedProductDto = null
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            currentScreen = "home",
+                            selectedProduct = null,
+                            selectedProductDto = null,
+                            selectedCategory = null
+                        )
+                    }
+                    selectTab(NavTab.HOME)
+                }
             }
             "orders" -> navigateToScreen("profile")
             "admin_dashboard" -> navigateToScreen("profile")
+            "category_detail" -> {
+                _uiState.update { it.copy(currentScreen = "category", selectedCategory = null) }
+            }
             else -> navigateToScreen("home")
         }
     }
@@ -179,7 +252,12 @@ class AppViewModel(
                     val targetTab = if (isAdmin) NavTab.PROFILE else NavTab.HOME
 
                     tokenManager.saveTokens(accessToken, refreshToken, response.expiresIn)
-                    tokenManager.saveUserInfo(response.userId, userEmail)
+                    tokenManager.saveUserInfo(
+                        userId = response.userId,
+                        email = userEmail,
+                        userName = userName,
+                        role = userRole
+                    )
                     _uiState.update {
                         it.copy(
                             isLoggedIn = true,
@@ -230,7 +308,12 @@ class AppViewModel(
                     val userRole = response.role.orEmpty().ifBlank { "USER" }
 
                     tokenManager.saveTokens(accessToken, refreshToken, response.expiresIn)
-                    tokenManager.saveUserInfo(response.userId, userEmail)
+                    tokenManager.saveUserInfo(
+                        userId = response.userId,
+                        email = userEmail,
+                        userName = userName,
+                        role = userRole
+                    )
                     _uiState.update {
                         it.copy(
                             isLoggedIn = true,
@@ -270,6 +353,8 @@ class AppViewModel(
                     categories = emptyList(),
                     cart = null,
                     orders = emptyList(),
+                    pendingOrder = null,
+                    selectedCategory = null,
                     currentScreen = "login",
                     currentTab = NavTab.HOME
                 )
@@ -311,8 +396,17 @@ class AppViewModel(
         viewModelScope.launch {
             userRepository.getUserProfile(token)
                 .onSuccess { profile ->
+                    tokenManager.saveUserInfo(
+                        userId = profile.id,
+                        email = profile.email,
+                        userName = profile.fullName.ifBlank { profile.username },
+                        phoneNumber = profile.phoneNumber.orEmpty(),
+                        address = profile.address.orEmpty(),
+                        role = profile.role
+                    )
                     _uiState.update {
                         it.copy(
+                            userId = profile.id,
                             userName = profile.fullName.ifBlank { profile.username },
                             userEmail = profile.email,
                             userPhone = profile.phoneNumber.orEmpty(),
@@ -351,8 +445,17 @@ class AppViewModel(
             )
             userRepository.updateUserProfile(token, request)
                 .onSuccess { profile ->
+                    tokenManager.saveUserInfo(
+                        userId = profile.id,
+                        email = profile.email,
+                        userName = profile.fullName.ifBlank { profile.username },
+                        phoneNumber = profile.phoneNumber.orEmpty(),
+                        address = profile.address.orEmpty(),
+                        role = profile.role
+                    )
                     _uiState.update {
                         it.copy(
+                            userId = profile.id,
                             userName = profile.fullName.ifBlank { profile.username },
                             userEmail = profile.email,
                             userPhone = profile.phoneNumber.orEmpty(),
@@ -410,96 +513,182 @@ class AppViewModel(
             setLoading(false)
         }
     }
-
     fun addToCart(productId: String, quantity: Int = 1) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) {
-            setError("Bạn cần đăng nhập để thêm vào giỏ hàng.")
-            return
-        }
-
         viewModelScope.launch {
+            val token = resolveAccessToken()
+            if (token.isBlank() || !_uiState.value.isLoggedIn) {
+                clearError()
+                navigateToLogin()
+                return@launch
+            }
             setLoading(true)
             cartRepository.addToCart(token, AddToCartRequest(productId = productId, quantity = quantity))
                 .onSuccess { cart ->
                     _uiState.update { it.copy(cart = cart) }
+                    loadCart()
                 }
                 .onFailure {
-                    setError(it.message ?: "Không thể thêm sản phẩm vào giỏ hàng")
+                    setError(it.message ?: "Khong the them san pham vao gio hang")
                 }
             setLoading(false)
         }
     }
 
     fun loadCart() {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
-
         viewModelScope.launch {
+            val token = resolveAccessToken()
+            if (token.isBlank()) return@launch
+
             cartRepository.getCart(token)
                 .onSuccess { cart ->
                     _uiState.update { it.copy(cart = cart) }
                 }
                 .onFailure {
-                    setError(it.message ?: "Không thể tải giỏ hàng")
+                    if (it.message?.contains("Not found", ignoreCase = true) == true ||
+                        it.message?.contains("404", ignoreCase = true) == true
+                    ) {
+                        _uiState.update { state -> state.copy(cart = CartDto()) }
+                    } else {
+                        setError(it.message ?: "Khong the tai gio hang")
+                    }
                 }
         }
     }
 
     fun removeCartItem(itemId: String) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
-
         viewModelScope.launch {
+            val token = resolveAccessToken()
+            if (token.isBlank()) return@launch
+
             setLoading(true)
             cartRepository.removeFromCart(token, itemId)
                 .onSuccess { cart -> _uiState.update { it.copy(cart = cart) } }
-                .onFailure { setError(it.message ?: "Không thể xóa sản phẩm") }
+                .onFailure { setError(it.message ?: "Khong the xoa san pham") }
+            setLoading(false)
+        }
+    }
+
+    private fun loadProductDetail(productId: String) {
+        viewModelScope.launch {
+            productRepository.getProductDetail(productId)
+                .onSuccess { product ->
+                    _uiState.update { it.copy(selectedProductDto = product) }
+                }
+                .onFailure {
+                    setError(it.message ?: "Khong the tai chi tiet san pham")
+                }
+        }
+    }
+
+    fun updateCartItemQuantity(itemId: String, quantity: Int) {
+        val safeQuantity = quantity.coerceAtLeast(1)
+        viewModelScope.launch {
+            val token = resolveAccessToken()
+            if (token.isBlank()) return@launch
+
+            setLoading(true)
+            cartRepository.updateCartItem(token, itemId, safeQuantity)
+                .onSuccess { cart -> _uiState.update { it.copy(cart = cart) } }
+                .onFailure { setError(it.message ?: "Khong the cap nhat so luong san pham") }
+            setLoading(false)
+        }
+    }
+
+    fun clearCart() {
+        viewModelScope.launch {
+            val token = resolveAccessToken()
+            if (token.isBlank()) {
+                navigateToLogin()
+                return@launch
+            }
+
+            setLoading(true)
+            cartRepository.clearCart(token)
+                .onSuccess {
+                    loadCart()
+                    clearError()
+                }
+                .onFailure {
+                    setError(it.message ?: "Khong the xoa gio hang")
+                }
             setLoading(false)
         }
     }
 
     fun createOrder() {
-        val token = _uiState.value.accessToken
         val address = _uiState.value.checkoutAddress
-        if (token.isBlank()) {
-            setError("Bạn cần đăng nhập để đặt hàng.")
-            return
-        }
         if (address.isBlank()) {
-            setError("Vui lòng nhập địa chỉ giao hàng.")
+            setError("Vui long nhap dia chi giao hang.")
             return
         }
 
         viewModelScope.launch {
+            val token = resolveAccessToken()
+            if (token.isBlank()) {
+                navigateToLogin()
+                return@launch
+            }
             setLoading(true)
             val request = CreateOrderRequest(
                 paymentMethod = "COD",
                 billingAddress = address
             )
             orderRepository.createOrder(token, request)
-                .onSuccess {
+                .onSuccess { order ->
                     loadOrders()
                     loadCart()
-                    _uiState.update { it.copy(checkoutAddress = "") }
+                    _uiState.update {
+                        it.copy(
+                            cart = null,
+                            checkoutAddress = "",
+                            pendingOrder = order
+                        )
+                    }
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Không thể tạo đơn hàng")
+                    setError(it.message ?: "Khong the tao don hang")
+                }
+            setLoading(false)
+        }
+    }
+
+    fun createPaymentForPendingOrder() {
+        val token = _uiState.value.accessToken
+        val order = _uiState.value.pendingOrder
+        if (token.isBlank() || order == null) {
+            setError("Chua co don hang de thanh toan.")
+            return
+        }
+
+        viewModelScope.launch {
+            setLoading(true)
+            paymentRepository.createPayment(
+                token,
+                CreatePaymentRequest(
+                    orderId = order.id,
+                    amount = order.totalPrice.roundToInt(),
+                    paymentMethod = order.paymentMethod.ifBlank { "COD" }
+                )
+            )
+                .onSuccess {
+                    clearError()
+                }
+                .onFailure {
+                    setError(it.message ?: "Khong the tao thanh toan cho don hang ${order.id}")
                 }
             setLoading(false)
         }
     }
 
     fun loadOrders() {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
-
         viewModelScope.launch {
+            val token = resolveAccessToken()
+            if (token.isBlank()) return@launch
             setLoading(true)
             orderRepository.getOrders(token)
                 .onSuccess { response -> _uiState.update { it.copy(orders = response.items.orEmpty()) } }
-                .onFailure { setError(it.message ?: "Không thể tải đơn hàng") }
+                .onFailure { setError(it.message ?: "Khong the tai don hang") }
             setLoading(false)
         }
     }
@@ -508,9 +697,22 @@ class AppViewModel(
         viewModelScope.launch {
             val token = tokenManager.getAccessToken().orEmpty()
             if (token.isNotBlank()) {
+                val storedUserId = tokenManager.getUserId().orEmpty()
+                val storedUserEmail = tokenManager.getUserEmail().orEmpty()
+                val storedUserName = tokenManager.getUserName().orEmpty()
+                val storedUserPhone = tokenManager.getUserPhone().orEmpty()
+                val storedUserAddress = tokenManager.getUserAddress().orEmpty()
+                val storedUserRole = tokenManager.getUserRole().orEmpty().ifBlank { "USER" }
+
                 _uiState.update {
                     it.copy(
                         isLoggedIn = true,
+                        userId = storedUserId.ifBlank { null },
+                        userName = storedUserName,
+                        userEmail = storedUserEmail,
+                        userPhone = storedUserPhone,
+                        userAddress = storedUserAddress,
+                        userRole = storedUserRole,
                         accessToken = token,
                         currentScreen = "home",
                         currentTab = NavTab.HOME
