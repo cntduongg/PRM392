@@ -5,11 +5,11 @@ import androidx.compose.runtime.Immutable
 @Immutable
 data class User(
     val id: String = "1",
-    val name: String = "Nguyễn Hòa",
+    val name: String = "Nguyá»n HÃ²a",
     val email: String = "hoa@example.com",
     val phone: String = "0901234567",
     val avatar: String = "https://via.placeholder.com/100",
-    val address: String = "123 Đường Tây Hồ, Hà Nội"
+    val address: String = "123 ÄÆ°á»ng TÃ¢y Há», HÃ  Ná»i"
 )
 
 @Immutable
@@ -18,7 +18,7 @@ data class Product(
     val name: String,
     val price: Int, // in VND
     val image: String,
-    val origin: String, // e.g., "🌱 Đà Lạt"
+    val origin: String, // e.g., "ð± ÄÃ  Láº¡t"
     val description: String,
     val stemCount: List<Int> = listOf(10, 20, 30),
     val rating: Float = 4.5f,

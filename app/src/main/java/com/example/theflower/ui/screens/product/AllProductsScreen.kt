@@ -1,10 +1,9 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.product
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -17,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.example.theflower.data.MockData
 import com.example.theflower.domain.models.Product
@@ -29,13 +27,13 @@ fun AllProductsScreen(
     searchQuery: String = ""
 ) {
     val sortBy = remember { mutableStateOf("recommended") }
-    
+
     val filteredProducts = if (searchQuery.isBlank()) {
         MockData.products
     } else {
-        MockData.products.filter { 
+        MockData.products.filter {
             it.name.contains(searchQuery, ignoreCase = true) ||
-            it.category.contains(searchQuery, ignoreCase = true)
+                it.category.contains(searchQuery, ignoreCase = true)
         }
     }
 
@@ -44,7 +42,6 @@ fun AllProductsScreen(
             .fillMaxSize()
             .background(PaperWhite)
     ) {
-        // Header
         Text(
             text = "Danh mục hoa",
             style = MaterialTheme.typography.headlineSmall,
@@ -52,7 +49,7 @@ fun AllProductsScreen(
             modifier = Modifier.padding(16.dp)
         )
 
-        // Filter/Sort buttons
+        // Filter/Sort chips
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -105,7 +102,6 @@ fun ProductListItem(
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
     ) {
-        // Product image
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,9 +115,7 @@ fun ProductListItem(
             )
         }
 
-        // Product info
         Column(modifier = Modifier.padding(12.dp)) {
-            // Name
             Text(
                 text = product.name,
                 style = MaterialTheme.typography.labelMedium,
@@ -131,7 +125,6 @@ fun ProductListItem(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Rating
             Text(
                 text = "⭐ ${product.rating}",
                 style = MaterialTheme.typography.labelSmall,
@@ -140,7 +133,6 @@ fun ProductListItem(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Price
             Text(
                 text = "₫${product.price}",
                 style = MaterialTheme.typography.titleSmall,
@@ -149,7 +141,6 @@ fun ProductListItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Add button
             Button(
                 onClick = onClick,
                 modifier = Modifier

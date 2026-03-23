@@ -1,4 +1,4 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.payment
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -34,17 +34,13 @@ fun PaymentSuccessScreen(
         label = "scaleAnimation"
     )
 
-    LaunchedEffect(Unit) {
-        scale.value = 1f
-    }
+    LaunchedEffect(Unit) { scale.value = 1f }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(PaperWhite, Sand)
-                )
+                brush = Brush.verticalGradient(colors = listOf(PaperWhite, Sand))
             )
     ) {
         Column(
@@ -54,18 +50,15 @@ fun PaymentSuccessScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Success icon with animation
             Text(
-                text = "✓",
+                text = "✅",
                 fontSize = MaterialTheme.typography.headlineLarge.fontSize,
-                modifier = Modifier
-                    .graphicsLayer(scaleX = animatedScale.value, scaleY = animatedScale.value),
+                modifier = Modifier.graphicsLayer(scaleX = animatedScale.value, scaleY = animatedScale.value),
                 color = MossGreen
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Title
             Text(
                 text = "Thanh toán thành công!",
                 style = MaterialTheme.typography.headlineMedium,
@@ -75,7 +68,6 @@ fun PaymentSuccessScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Message
             Text(
                 text = "Đơn hàng $orderId của bạn đã được xác nhận. Chúng tôi sẽ sớm chuẩn bị và giao tận tay bạn.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -86,7 +78,6 @@ fun PaymentSuccessScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Order details card
             androidx.compose.material3.Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -110,7 +101,7 @@ fun PaymentSuccessScreen(
                     ) {
                         Text("Trạng thái:", style = MaterialTheme.typography.bodyMedium, color = SoilBrown)
                         Text(
-                            "✓ Đã xác nhận",
+                            "✅ Đã xác nhận",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MossGreen
                         )
@@ -120,7 +111,6 @@ fun PaymentSuccessScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Buttons
             Button(
                 onClick = onViewOrder,
                 modifier = Modifier
@@ -174,16 +164,14 @@ fun PaymentCancelScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Error icon
             Text(
-                text = "✕",
+                text = "❌",
                 fontSize = MaterialTheme.typography.headlineLarge.fontSize,
                 color = WarmPeach
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Title
             Text(
                 text = "Thanh toán không thành công",
                 style = MaterialTheme.typography.headlineMedium,
@@ -193,7 +181,6 @@ fun PaymentCancelScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Message
             Text(
                 text = "Có lỗi xảy ra trong quá trình thanh toán. Vui lòng kiểm tra lại thông tin và thử lại.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -204,7 +191,6 @@ fun PaymentCancelScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Error details card
             androidx.compose.material3.Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -228,7 +214,7 @@ fun PaymentCancelScreen(
                     ) {
                         Text("Trạng thái:", style = MaterialTheme.typography.bodyMedium, color = SoilBrown)
                         Text(
-                            "✕ Lỗi thanh toán",
+                            "❌ Lỗi thanh toán",
                             style = MaterialTheme.typography.bodyMedium,
                             color = WarmPeach
                         )
@@ -238,7 +224,6 @@ fun PaymentCancelScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Buttons
             Button(
                 onClick = onRetryPayment,
                 modifier = Modifier

@@ -19,9 +19,9 @@ class ChatRepositoryImpl(
     /**
      * Get all chat conversations
      */
-    override suspend fun getChatConversations(token: String): Result<List<ChatMessageDto>> {
+    override suspend fun getChatConversations(): Result<List<ChatMessageDto>> {
         return try {
-            val response = apiService.getChatMessages(token, page = 1, pageSize = 50)
+            val response = apiService.getChatMessages(page = 1, pageSize = 50)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -37,9 +37,9 @@ class ChatRepositoryImpl(
     /**
      * Get messages from specific conversation
      */
-    override suspend fun getConversationMessages(token: String, conversationId: String): Result<List<ChatMessageDto>> {
+    override suspend fun getConversationMessages(conversationId: String): Result<List<ChatMessageDto>> {
         return try {
-            val response = apiService.getChatMessages(token, page = 1, pageSize = 100)
+            val response = apiService.getChatMessages(page = 1, pageSize = 100)
             if (response.success && response.data != null) {
                 Result.success(
                     response.data.filter { it.conversationId == null || it.conversationId == conversationId }
@@ -58,11 +58,10 @@ class ChatRepositoryImpl(
      * Send chat message
      */
     override suspend fun sendChatMessage(
-        token: String,
         request: SendChatMessageRequest
     ): Result<ChatMessageDto> {
         return try {
-            val response = apiService.sendChatMessage(token, SendMessageDto(request.message))
+            val response = apiService.sendChatMessage(SendMessageDto(request.message))
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {

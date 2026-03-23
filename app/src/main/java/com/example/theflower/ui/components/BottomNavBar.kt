@@ -45,26 +45,26 @@ fun BottomNavBar(
     ) {
         NavTabButton(
             icon = "\uD83C\uDFE0",
-            label = "Trang ch?",
+            label = "Trang chủ",
             isSelected = currentTab == NavTab.HOME,
             onClick = { onTabClick(NavTab.HOME) }
         )
         NavTabButton(
             icon = "\uD83C\uDF38",
-            label = "Danh m?c",
+            label = "Danh mục",
             isSelected = currentTab == NavTab.CATEGORY,
             onClick = { onTabClick(NavTab.CATEGORY) }
         )
         NavTabButton(
             icon = "\uD83D\uDED2",
-            label = "Gi? h�ng",
+            label = "Giỏ hàng",
             isSelected = currentTab == NavTab.CART,
             badgeCount = cartItemCount,
             onClick = { onTabClick(NavTab.CART) }
         )
         NavTabButton(
             icon = "\uD83D\uDC64",
-            label = "T�i",
+            label = "Tôi",
             isSelected = currentTab == NavTab.PROFILE,
             onClick = { onTabClick(NavTab.PROFILE) }
         )

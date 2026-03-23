@@ -37,7 +37,7 @@ object DIContainer {
      */
     fun init(appContext: Context, isDevelopment: Boolean = true) {
         context = appContext
-        RetrofitClient.initialize(isDevelopment)
+        RetrofitClient.initialize(isDevelopment, getTokenManager())
     }
     
     /**

@@ -1,10 +1,9 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.cart
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -12,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.theflower.domain.models.CartItem
 import com.example.theflower.data.MockData
@@ -59,7 +59,6 @@ fun CartScreen(
                 .fillMaxSize()
                 .background(PaperWhite)
         ) {
-            // Header
             Text(
                 text = "Giỏ hàng (${cartItems.size})",
                 style = MaterialTheme.typography.headlineSmall,
@@ -67,7 +66,6 @@ fun CartScreen(
                 modifier = Modifier.padding(16.dp)
             )
 
-            // Cart items
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -114,7 +112,6 @@ fun CartScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Checkout button
                 Button(
                     onClick = onCheckout,
                     modifier = Modifier
@@ -142,7 +139,6 @@ fun CartItemRow(item: CartItem) {
             .padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Product image
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -153,7 +149,6 @@ fun CartItemRow(item: CartItem) {
             Text("🌸", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
         }
 
-        // Product info
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -181,10 +176,7 @@ fun CartItemRow(item: CartItem) {
             }
         }
 
-        // Price and remove
-        Column(
-            horizontalAlignment = Alignment.End
-        ) {
+        Column(horizontalAlignment = Alignment.End) {
             Text(
                 text = "₫${item.product.price * item.quantity}",
                 style = MaterialTheme.typography.titleSmall,

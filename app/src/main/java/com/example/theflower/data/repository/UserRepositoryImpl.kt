@@ -19,9 +19,9 @@ class UserRepositoryImpl(
     /**
      * Get user profile details
      */
-    override suspend fun getUserProfile(token: String): Result<UserProfileDto> {
+    override suspend fun getUserProfile(): Result<UserProfileDto> {
         return try {
-            val response = apiService.getUserProfile(token)
+            val response = apiService.getUserProfile()
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
@@ -38,9 +38,9 @@ class UserRepositoryImpl(
     /**
      * Update user profile information
      */
-    override suspend fun updateUserProfile(token: String, request: UpdateProfileRequest): Result<UserProfileDto> {
+    override suspend fun updateUserProfile(request: UpdateProfileRequest): Result<UserProfileDto> {
         return try {
-            val response = apiService.updateUserProfile(token, request)
+            val response = apiService.updateUserProfile(request)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
@@ -57,9 +57,9 @@ class UserRepositoryImpl(
     /**
      * Change user password
      */
-    override suspend fun changePassword(token: String, request: ChangeUserPasswordDto): Result<Unit> {
+    override suspend fun changePassword(request: ChangeUserPasswordDto): Result<Unit> {
         return try {
-            val response = apiService.changePassword(token, request)
+            val response = apiService.changePassword(request)
 
             if (response.success) {
                 Result.success(Unit)

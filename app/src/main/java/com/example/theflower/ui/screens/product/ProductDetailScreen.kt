@@ -1,4 +1,4 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.product
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -36,7 +36,6 @@ fun ProductDetailScreen(
             .fillMaxSize()
             .background(PaperWhite)
     ) {
-        // Header with back button
         item {
             Row(
                 modifier = Modifier
@@ -66,7 +65,6 @@ fun ProductDetailScreen(
             }
         }
 
-        // Product image (42% of screen)
         item {
             Box(
                 modifier = Modifier
@@ -82,7 +80,6 @@ fun ProductDetailScreen(
             }
         }
 
-        // Origin badge
         item {
             Box(
                 modifier = Modifier
@@ -100,10 +97,8 @@ fun ProductDetailScreen(
             }
         }
 
-        // Product details
         item {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Product name (2 lines, italic style)
                 Text(
                     text = product.name,
                     style = MaterialTheme.typography.headlineMedium,
@@ -111,18 +106,17 @@ fun ProductDetailScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                // Rating
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(bottom = 12.dp)
                 ) {
-                    Text("⭐ ${product.rating} (${product.reviews} đánh giá)", 
+                    Text(
+                        "⭐ ${product.rating} (${product.reviews} đánh giá)",
                         style = MaterialTheme.typography.bodySmall,
                         color = SandDark
                     )
                 }
 
-                // Description
                 Text(
                     text = product.description,
                     style = MaterialTheme.typography.bodyMedium,
@@ -130,7 +124,6 @@ fun ProductDetailScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Price
                 Text(
                     text = "₫${product.price}",
                     style = MaterialTheme.typography.headlineSmall,
@@ -139,7 +132,6 @@ fun ProductDetailScreen(
             }
         }
 
-        // Stem quantity selector
         item {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -177,7 +169,6 @@ fun ProductDetailScreen(
             }
         }
 
-        // Message card
         item {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -210,12 +201,9 @@ fun ProductDetailScreen(
             }
         }
 
-        // Add to cart button
         item {
             Button(
-                onClick = {
-                    onAddToCart(product, selectedStems.value, message.value)
-                },
+                onClick = { onAddToCart(product, selectedStems.value, message.value) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
@@ -224,15 +212,13 @@ fun ProductDetailScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "🛒 Thêm vào giỏ — ₫${product.price * selectedStems.value}",
+                    text = "🛒 Thêm vào giỏ – ₫${product.price * selectedStems.value}",
                     style = MaterialTheme.typography.titleMedium,
                     color = PaperWhite
                 )
             }
         }
 
-        item {
-            Spacer(modifier = Modifier.height(20.dp))
-        }
+        item { Spacer(modifier = Modifier.height(20.dp)) }
     }
 }

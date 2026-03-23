@@ -1,4 +1,4 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.payment
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,7 +37,6 @@ fun PaymentScreen(
             .background(PaperWhite)
             .padding(bottom = 60.dp)
     ) {
-        // Header
         item {
             Text(
                 text = "Thanh toán",
@@ -47,7 +46,6 @@ fun PaymentScreen(
             )
         }
 
-        // Order summary
         item {
             Card(
                 modifier = Modifier
@@ -77,7 +75,6 @@ fun PaymentScreen(
             }
         }
 
-        // Recipient info
         item {
             Column(
                 modifier = Modifier
@@ -160,7 +157,6 @@ fun PaymentScreen(
             }
         }
 
-        // Payment methods
         item {
             Column(
                 modifier = Modifier
@@ -174,7 +170,6 @@ fun PaymentScreen(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                // COD
                 PaymentMethodCard(
                     icon = "💵",
                     name = "Thanh toán khi nhận hàng (COD)",
@@ -184,7 +179,6 @@ fun PaymentScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Bank transfer
                 PaymentMethodCard(
                     icon = "🏦",
                     name = "Chuyển khoản ngân hàng",
@@ -194,9 +188,8 @@ fun PaymentScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // E-wallet
                 PaymentMethodCard(
-                    icon = "📱",
+                    icon = "💳",
                     name = "Ví điện tử",
                     isSelected = selectedPaymentMethod.value == "ewallet",
                     onClick = { selectedPaymentMethod.value = "ewallet" }
@@ -204,13 +197,11 @@ fun PaymentScreen(
             }
         }
 
-        // Payment buttons
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState())
             ) {
                 Button(
                     onClick = onPaymentSuccess,
@@ -221,7 +212,7 @@ fun PaymentScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "✓ Xác nhận thanh toán — ₫${totalAmount}",
+                        text = "✅ Xác nhận thanh toán – ₫${totalAmount}",
                         style = MaterialTheme.typography.titleMedium,
                         color = PaperWhite
                     )
@@ -262,11 +253,7 @@ fun PaymentMethodCard(
             .clickable(onClick = onClick)
             .then(
                 if (isSelected) {
-                    Modifier.border(
-                        2.dp,
-                        MossGreen,
-                        RoundedCornerShape(12.dp)
-                    )
+                    Modifier.border(2.dp, MossGreen, RoundedCornerShape(12.dp))
                 } else {
                     Modifier
                 }

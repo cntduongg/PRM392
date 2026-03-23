@@ -20,12 +20,11 @@ class NotificationRepositoryImpl(
      * Get paginated list of notifications
      */
     override suspend fun getNotifications(
-        token: String,
         pageNumber: Int,
         pageSize: Int
     ): Result<PaginatedResponse<NotificationDto>> {
         return try {
-            val response = apiService.getNotifications(token)
+            val response = apiService.getNotifications()
             if (response.success) {
                 val items = response.data.orEmpty()
                 val fromIndex = ((pageNumber - 1) * pageSize).coerceAtLeast(0)
@@ -50,9 +49,9 @@ class NotificationRepositoryImpl(
         }
     }
     
-    override suspend fun getBadge(token: String): Result<NotificationBadgeDto> {
+    override suspend fun getBadge(): Result<NotificationBadgeDto> {
         return try {
-            val response = apiService.getNotificationBadge(token)
+            val response = apiService.getNotificationBadge()
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -68,9 +67,9 @@ class NotificationRepositoryImpl(
     /**
      * Mark single notification as read
      */
-    override suspend fun markAsRead(token: String, notificationId: String): Result<NotificationDto> {
+    override suspend fun markAsRead(notificationId: String): Result<NotificationDto> {
         return try {
-            val response = apiService.markNotificationAsRead(token, notificationId)
+            val response = apiService.markNotificationAsRead(notificationId)
             
             if (response.success && response.data != null) {
                 Result.success(response.data)
@@ -87,9 +86,9 @@ class NotificationRepositoryImpl(
     /**
      * Mark all notifications as read
      */
-    override suspend fun markAllAsRead(token: String): Result<Unit> {
+    override suspend fun markAllAsRead(): Result<Unit> {
         return try {
-            val response = apiService.markAllNotificationsAsRead(token)
+            val response = apiService.markAllNotificationsAsRead()
             
             if (response.success) {
                 Result.success(Unit)

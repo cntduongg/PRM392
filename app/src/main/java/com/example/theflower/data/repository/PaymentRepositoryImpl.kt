@@ -17,7 +17,7 @@ class PaymentRepositoryImpl(
     /**
      * Create new payment for order
      */
-    override suspend fun createPayment(token: String, request: CreatePaymentRequest): Result<PaymentDto> {
+    override suspend fun createPayment(request: CreatePaymentRequest): Result<PaymentDto> {
         return Result.failure(
             ApiException.ValidationError("Payment endpoints are not defined in the current swagger spec.")
         )
@@ -26,7 +26,7 @@ class PaymentRepositoryImpl(
     /**
      * Get payment status by payment ID
      */
-    override suspend fun getPaymentStatus(token: String, paymentId: String): Result<PaymentDto> {
+    override suspend fun getPaymentStatus(paymentId: String): Result<PaymentDto> {
         return Result.failure(
             ApiException.ValidationError("Payment endpoints are not defined in the current swagger spec.")
         )
