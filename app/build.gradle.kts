@@ -81,4 +81,8 @@ dependencies {
 
     // Image loading
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Real-time Chat (SignalR)
+    implementation("com.microsoft.signalr:signalr:8.0.0")
 }
+

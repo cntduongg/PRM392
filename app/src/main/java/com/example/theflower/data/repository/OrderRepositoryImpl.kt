@@ -19,9 +19,9 @@ class OrderRepositoryImpl(
     /**
      * Get paginated list of user's orders
      */
-    override suspend fun getOrders(token: String, pageNumber: Int, pageSize: Int): Result<PaginatedResponse<OrderDto>> {
+    override suspend fun getOrders(pageNumber: Int, pageSize: Int): Result<PaginatedResponse<OrderDto>> {
         return try {
-            val response = apiService.getOrders(token)
+            val response = apiService.getOrders()
             val items = if (response.success) response.data.orEmpty() else emptyList()
             if (!response.success) {
                 return Result.failure(ApiException.ServerError(500, response.message))
@@ -47,9 +47,9 @@ class OrderRepositoryImpl(
     /**
      * Get order details by ID
      */
-    override suspend fun getOrderDetail(token: String, orderId: String): Result<OrderDto> {
+    override suspend fun getOrderDetail(orderId: String): Result<OrderDto> {
         return try {
-            val response = apiService.getOrderDetail(token, orderId)
+            val response = apiService.getOrderDetail(orderId)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -65,9 +65,9 @@ class OrderRepositoryImpl(
     /**
      * Create new order from cart
      */
-    override suspend fun createOrder(token: String, request: CreateOrderRequest): Result<OrderDto> {
+    override suspend fun createOrder(request: CreateOrderRequest): Result<OrderDto> {
         return try {
-            val response = apiService.createOrder(token, request)
+            val response = apiService.createOrder(request)
             if (response.success && response.data != null) {
                 val mappedOrder = OrderDto(
                     id = response.data.orderId,
@@ -92,7 +92,7 @@ class OrderRepositoryImpl(
     /**
      * Cancel existing order
      */
-    override suspend fun cancelOrder(token: String, orderId: String): Result<OrderDto> {
+    override suspend fun cancelOrder(orderId: String): Result<OrderDto> {
         return Result.failure(ApiException.ValidationError("Order cancellation is not defined in the current swagger spec."))
     }
 }

@@ -1,4 +1,4 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.map
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,7 +32,6 @@ fun MapScreen() {
             .background(PaperWhite)
             .padding(bottom = 60.dp)
     ) {
-        // Header
         Text(
             text = "Cửa hàng của chúng tôi",
             style = MaterialTheme.typography.headlineSmall,
@@ -40,7 +39,6 @@ fun MapScreen() {
             modifier = Modifier.padding(16.dp)
         )
 
-        // Map placeholder
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -67,7 +65,6 @@ fun MapScreen() {
             modifier = Modifier.padding(16.dp)
         )
 
-        // Store list
         LazyColumn {
             items(storeLocations) { (coordinates, storeName) ->
                 StoreLocationCard(

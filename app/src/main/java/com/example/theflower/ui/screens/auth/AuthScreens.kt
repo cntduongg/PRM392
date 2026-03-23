@@ -1,4 +1,4 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -73,7 +73,7 @@ fun LoginScreen(
         )
 
         Text(
-            text = "Tặng hoa — tặng cả cảm xúc",
+            text = "Tặng hoa – tặng cả cảm xúc",
             style = MaterialTheme.typography.bodyMedium,
             color = MossGreen
         )

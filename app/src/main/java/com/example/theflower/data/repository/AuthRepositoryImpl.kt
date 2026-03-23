@@ -63,13 +63,13 @@ class AuthRepositoryImpl(
      * Refresh access token using refresh token
      */
     override suspend fun refreshToken(request: RefreshTokenRequest): Result<AuthResponse> {
-        return Result.failure(ApiException.TokenExpired("Refresh token endpoint chưa được backend hỗ trợ."))
+        return Result.failure(ApiException.TokenExpired("Refresh token endpoint chÆ°a ÄÆ°á»£c backend há» trá»£."))
     }
     
     /**
      * Logout user and invalidate tokens
      */
-    override suspend fun logout(token: String): Result<Unit> {
+    override suspend fun logout(): Result<Unit> {
         return Result.success(Unit)
     }
 }

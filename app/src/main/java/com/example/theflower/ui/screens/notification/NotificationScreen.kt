@@ -1,4 +1,4 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.notification
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,7 +34,6 @@ fun NotificationScreen() {
             .background(PaperWhite)
             .padding(bottom = 60.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -62,11 +61,9 @@ fun NotificationScreen() {
 
         Divider()
 
-        // Notifications list
         if (notifications.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -89,14 +86,14 @@ fun NotificationScreen() {
 fun NotificationItem(notification: Notification) {
     val dateFormat = SimpleDateFormat("dd/MM HH:mm", Locale("vi", "VN"))
     val formattedDate = dateFormat.format(Date(notification.createdAt))
-    
+
     val backgroundColor = when {
         !notification.isRead -> Sand
         else -> PaperWhite
     }
-    
+
     val icon = when (notification.type) {
-        "success" -> "✓"
+        "success" -> "✅"
         "warning" -> "⚠️"
         else -> "ℹ️"
     }
@@ -116,7 +113,6 @@ fun NotificationItem(notification: Notification) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Icon
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -133,7 +129,6 @@ fun NotificationItem(notification: Notification) {
                 Text(icon, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
             }
 
-            // Content
             Column(
                 modifier = Modifier
                     .weight(1f)

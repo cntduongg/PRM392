@@ -1,5 +1,7 @@
 package com.example.theflower.data.remote.api
 
+import com.example.theflower.data.local.TokenManager
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -18,18 +20,20 @@ import javax.net.ssl.X509TrustManager
  */
 object RetrofitClient {
     
-    //private const val BASE_URL_DEV = "http://192.168.1.7:5134/"
-    private const val BASE_URL_DEV = "http://10.0.2.2:5134/"
+    private const val BASE_URL_DEV = "http://192.168.1.7:5134/"
+//    private const val BASE_URL_DEV = "http://10.0.2.2:5134/"
     private const val BASE_URL_PROD = "https://api.theflower.com/"
     private const val TIMEOUT_SECONDS = 30L
     
     private var isDevelopment = true
-    
+    private var tokenManager: TokenManager? = null
+
     private var retrofit: Retrofit? = null
     private var apiService: TheFlowerApiService? = null
     
-    fun initialize(isDev: Boolean = true) {
+    fun initialize(isDev: Boolean = true, tokenManager: TokenManager? = null) {
         isDevelopment = isDev
+        this.tokenManager = tokenManager
         retrofit = buildRetrofit()
         apiService = retrofit!!.create(TheFlowerApiService::class.java)
     }
@@ -63,7 +67,7 @@ object RetrofitClient {
         }
         
         // Add authorization interceptor
-        httpClient.addInterceptor(AuthInterceptor())
+        tokenManager?.let { httpClient.addInterceptor(AuthInterceptor(it)) }
         
         return httpClient.build()
     }
@@ -100,33 +104,35 @@ object RetrofitClient {
 }
 
 /**
- * Interceptor to add Bearer token to requests
+ * Interceptor to automatically add Bearer token to all protected requests.
+ * Token is read directly from TokenManager â no need to pass it manually.
  */
-class AuthInterceptor : Interceptor {
-    
+class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
+
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
-        val requestBuilder = originalRequest.newBuilder()
-        
-        // Skip auth for public endpoints
+
+        // Skip auth header for public endpoints
         if (isPublicEndpoint(originalRequest.url.encodedPath)) {
             return chain.proceed(originalRequest)
         }
-        
-        // Add token to request (implement async token retrieval if needed)
-        // For now, tokens should be pre-retrieved and set in the header by the repository
-        val token = originalRequest.header("Authorization")
-        if (token != null) {
-            requestBuilder.header("Authorization", "Bearer $token")
+
+        // OkHttp runs on a background thread, so runBlocking is safe here
+        val token = runBlocking { tokenManager.getAccessToken() }
+        val newRequest = if (!token.isNullOrBlank()) {
+            originalRequest.newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+        } else {
+            originalRequest
         }
-        
-        val newRequest = requestBuilder.build()
         return chain.proceed(newRequest)
     }
-    
+
     private fun isPublicEndpoint(path: String): Boolean {
-        return path.contains("/auth/register") || 
-               path.contains("/auth/login") || 
+        return path.contains("/auth/register") ||
+               path.contains("/auth/login") ||
+               path.contains("/auth/refresh-token") ||
                path.contains("/products") ||
                path.contains("/categories")
     }

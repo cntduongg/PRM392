@@ -37,7 +37,7 @@ object DIContainer {
      */
     fun init(appContext: Context, isDevelopment: Boolean = true) {
         context = appContext
-        RetrofitClient.initialize(isDevelopment)
+        RetrofitClient.initialize(isDevelopment, getTokenManager())
     }
     
     /**
@@ -132,8 +132,12 @@ object DIContainer {
      * Note: Requires authentication token
      */
     fun getChatRepository(): IChatRepository {
-        return chatRepository ?: ChatRepositoryImpl(getApiService()).also { chatRepository = it }
+        return chatRepository ?: ChatRepositoryImpl(
+            getApiService(), 
+            com.example.theflower.BuildConfig.API_BASE_URL
+        ).also { chatRepository = it }
     }
+
     
     /**
      * Get or create UserRepository singleton

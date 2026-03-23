@@ -19,9 +19,9 @@ class CartRepositoryImpl(
     /**
      * Get current cart contents
      */
-    override suspend fun getCart(token: String): Result<CartDto> {
+    override suspend fun getCart(): Result<CartDto> {
         return try {
-            val response = apiService.getCart(token)
+            val response = apiService.getCart()
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -37,9 +37,9 @@ class CartRepositoryImpl(
     /**
      * Add product to cart
      */
-    override suspend fun addToCart(token: String, request: AddToCartRequest): Result<CartDto> {
+    override suspend fun addToCart(request: AddToCartRequest): Result<CartDto> {
         return try {
-            val response = apiService.addToCart(token, request)
+            val response = apiService.addToCart(request)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -55,9 +55,9 @@ class CartRepositoryImpl(
     /**
      * Remove item from cart
      */
-    override suspend fun removeFromCart(token: String, cartItemId: String): Result<CartDto> {
+    override suspend fun removeFromCart(cartItemId: String): Result<CartDto> {
         return try {
-            val response = apiService.removeFromCart(token, cartItemId)
+            val response = apiService.removeFromCart(cartItemId)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -73,9 +73,9 @@ class CartRepositoryImpl(
     /**
      * Update quantity of cart item
      */
-    override suspend fun updateCartItem(token: String, cartItemId: String, quantity: Int): Result<CartDto> {
+    override suspend fun updateCartItem(cartItemId: String, quantity: Int): Result<CartDto> {
         return try {
-            val response = apiService.updateCartItem(token, cartItemId, UpdateCartItemDto(quantity))
+            val response = apiService.updateCartItem(cartItemId, UpdateCartItemDto(quantity))
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -91,9 +91,9 @@ class CartRepositoryImpl(
     /**
      * Clear entire cart
      */
-    override suspend fun clearCart(token: String): Result<Unit> {
+    override suspend fun clearCart(): Result<Unit> {
         return try {
-            val response = apiService.clearCart(token)
+            val response = apiService.clearCart()
             if (response.success) {
                 Result.success(Unit)
             } else {

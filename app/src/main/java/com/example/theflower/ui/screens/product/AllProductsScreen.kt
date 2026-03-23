@@ -1,10 +1,9 @@
-package com.example.theflower.ui.screens
+package com.example.theflower.ui.screens.product
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -17,11 +16,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.example.theflower.data.MockData
 import com.example.theflower.domain.models.Product
 import com.example.theflower.ui.theme.*
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun AllProductsScreen(
@@ -29,13 +28,13 @@ fun AllProductsScreen(
     searchQuery: String = ""
 ) {
     val sortBy = remember { mutableStateOf("recommended") }
-    
+
     val filteredProducts = if (searchQuery.isBlank()) {
         MockData.products
     } else {
-        MockData.products.filter { 
+        MockData.products.filter {
             it.name.contains(searchQuery, ignoreCase = true) ||
-            it.category.contains(searchQuery, ignoreCase = true)
+                it.category.contains(searchQuery, ignoreCase = true)
         }
     }
 
@@ -44,7 +43,6 @@ fun AllProductsScreen(
             .fillMaxSize()
             .background(PaperWhite)
     ) {
-        // Header
         Text(
             text = "Danh mục hoa",
             style = MaterialTheme.typography.headlineSmall,
@@ -52,7 +50,7 @@ fun AllProductsScreen(
             modifier = Modifier.padding(16.dp)
         )
 
-        // Filter/Sort buttons
+        // Filter/Sort chips
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -100,69 +98,75 @@ fun ProductListItem(
     product: Product,
     onClick: () -> Unit
 ) {
-    Column(
+    Card(
         modifier = Modifier
+            .fillMaxWidth()
+            .height(310.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = Sand)
     ) {
-        // Product image
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-                .background(Sand),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🌸",
-                fontSize = MaterialTheme.typography.headlineLarge.fontSize
-            )
-        }
-
-        // Product info
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Name
-            Text(
-                text = product.name,
-                style = MaterialTheme.typography.labelMedium,
-                color = SoilBrown,
-                maxLines = 2
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Rating
-            Text(
-                text = "⭐ ${product.rating}",
-                style = MaterialTheme.typography.labelSmall,
-                color = SandDark
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Price
-            Text(
-                text = "₫${product.price}",
-                style = MaterialTheme.typography.titleSmall,
-                color = MossGreen
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Add button
-            Button(
-                onClick = onClick,
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MossGreen),
-                shape = RoundedCornerShape(8.dp)
+                    .height(140.dp)
+                    .background(Color(0xFFE8DFD8)),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "+ Thêm",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PaperWhite
+                    text = "🌸",
+                    fontSize = MaterialTheme.typography.headlineLarge.fontSize
                 )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(10.dp)
+            ) {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = SoilBrown,
+                    maxLines = 2,
+                    minLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "⭐ ${product.rating}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SandDark
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "₫${product.price}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MossGreen
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MossGreen),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = "+ Thêm",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PaperWhite
+                    )
+                }
             }
         }
     }

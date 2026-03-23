@@ -14,9 +14,9 @@ class AdminRepositoryImpl(
     private val apiService: TheFlowerApiService
 ) : IAdminRepository {
 
-    override suspend fun getUsers(token: String): Result<List<AdminUserDto>> {
+    override suspend fun getUsers(): Result<List<AdminUserDto>> {
         return try {
-            val response = apiService.getUsersAdmin(token)
+            val response = apiService.getUsersAdmin()
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -29,9 +29,9 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun createUser(token: String, request: CreateAdminUserRequest): Result<AdminUserDto> {
+    override suspend fun createUser(request: CreateAdminUserRequest): Result<AdminUserDto> {
         return try {
-            val response = apiService.createUserAdmin(token, request)
+            val response = apiService.createUserAdmin(request)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -44,9 +44,9 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun updateUser(token: String, userId: String, request: UpdateAdminUserRequest): Result<AdminUserDto> {
+    override suspend fun updateUser(userId: String, request: UpdateAdminUserRequest): Result<AdminUserDto> {
         return try {
-            val response = apiService.updateUserAdmin(token, userId, request)
+            val response = apiService.updateUserAdmin(userId, request)
             if (response.success && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -59,9 +59,9 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun deleteUser(token: String, userId: String): Result<Unit> {
+    override suspend fun deleteUser(userId: String): Result<Unit> {
         return try {
-            val response = apiService.deleteUserAdmin(token, userId)
+            val response = apiService.deleteUserAdmin(userId)
             if (response.success) {
                 Result.success(Unit)
             } else {
@@ -74,9 +74,9 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun createProduct(token: String, request: ProductUpsertRequest): Result<Unit> {
+    override suspend fun createProduct(request: ProductUpsertRequest): Result<Unit> {
         return try {
-            val response = apiService.createProductAdmin(token, request)
+            val response = apiService.createProductAdmin(request)
             if (response.success) {
                 Result.success(Unit)
             } else {
@@ -89,9 +89,9 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun updateProduct(token: String, productId: String, request: UpdateProductRequest): Result<Unit> {
+    override suspend fun updateProduct(productId: String, request: UpdateProductRequest): Result<Unit> {
         return try {
-            val response = apiService.updateProductAdmin(token, productId, request)
+            val response = apiService.updateProductAdmin(productId, request)
             if (response.success) {
                 Result.success(Unit)
             } else {
@@ -104,9 +104,9 @@ class AdminRepositoryImpl(
         }
     }
 
-    override suspend fun deleteProduct(token: String, productId: String): Result<Unit> {
+    override suspend fun deleteProduct(productId: String): Result<Unit> {
         return try {
-            val response = apiService.deleteProductAdmin(token, productId)
+            val response = apiService.deleteProductAdmin(productId)
             if (response.success) {
                 Result.success(Unit)
             } else {

@@ -9,7 +9,7 @@ interface IAuthRepository {
     suspend fun register(request: RegisterRequest): Result<AuthResponse>
     suspend fun login(request: LoginRequest): Result<AuthResponse>
     suspend fun refreshToken(request: RefreshTokenRequest): Result<AuthResponse>
-    suspend fun logout(token: String): Result<Unit>
+    suspend fun logout(): Result<Unit>
 }
 
 /**
@@ -41,11 +41,11 @@ interface ICategoryRepository {
  * Cart Repository Interface
  */
 interface ICartRepository {
-    suspend fun getCart(token: String): Result<CartDto>
-    suspend fun addToCart(token: String, request: AddToCartRequest): Result<CartDto>
-    suspend fun removeFromCart(token: String, cartItemId: String): Result<CartDto>
-    suspend fun updateCartItem(token: String, cartItemId: String, quantity: Int): Result<CartDto>
-    suspend fun clearCart(token: String): Result<Unit>
+    suspend fun getCart(): Result<CartDto>
+    suspend fun addToCart(request: AddToCartRequest): Result<CartDto>
+    suspend fun removeFromCart(cartItemId: String): Result<CartDto>
+    suspend fun updateCartItem(cartItemId: String, quantity: Int): Result<CartDto>
+    suspend fun clearCart(): Result<Unit>
 }
 
 /**
@@ -53,22 +53,21 @@ interface ICartRepository {
  */
 interface IOrderRepository {
     suspend fun getOrders(
-        token: String,
         pageNumber: Int = 1,
         pageSize: Int = 20
     ): Result<PaginatedResponse<OrderDto>>
 
-    suspend fun getOrderDetail(token: String, orderId: String): Result<OrderDto>
-    suspend fun createOrder(token: String, request: CreateOrderRequest): Result<OrderDto>
-    suspend fun cancelOrder(token: String, orderId: String): Result<OrderDto>
+    suspend fun getOrderDetail(orderId: String): Result<OrderDto>
+    suspend fun createOrder(request: CreateOrderRequest): Result<OrderDto>
+    suspend fun cancelOrder(orderId: String): Result<OrderDto>
 }
 
 /**
  * Payments Repository Interface
  */
 interface IPaymentRepository {
-    suspend fun createPayment(token: String, request: CreatePaymentRequest): Result<PaymentDto>
-    suspend fun getPaymentStatus(token: String, paymentId: String): Result<PaymentDto>
+    suspend fun createPayment(request: CreatePaymentRequest): Result<PaymentDto>
+    suspend fun getPaymentStatus(paymentId: String): Result<PaymentDto>
 }
 
 /**
@@ -76,44 +75,58 @@ interface IPaymentRepository {
  */
 interface INotificationRepository {
     suspend fun getNotifications(
-        token: String,
         pageNumber: Int = 1,
         pageSize: Int = 20
     ): Result<PaginatedResponse<NotificationDto>>
 
-    suspend fun getBadge(token: String): Result<NotificationBadgeDto>
-    suspend fun markAsRead(token: String, notificationId: String): Result<NotificationDto>
-    suspend fun markAllAsRead(token: String): Result<Unit>
+    suspend fun getBadge(): Result<NotificationBadgeDto>
+    suspend fun markAsRead(notificationId: String): Result<NotificationDto>
+    suspend fun markAllAsRead(): Result<Unit>
 }
 
 /**
  * Chat Repository Interface
  */
 interface IChatRepository {
-    suspend fun getChatConversations(token: String): Result<List<ChatMessageDto>>
-    suspend fun getConversationMessages(token: String, conversationId: String): Result<List<ChatMessageDto>>
-    suspend fun sendChatMessage(token: String, request: SendChatMessageRequest): Result<ChatMessageDto>
+    val messages: kotlinx.coroutines.flow.StateFlow<List<ChatMessageDto>>
+    val connectionStatus: kotlinx.coroutines.flow.StateFlow<ChatConnectionStatus>
+
+    suspend fun connect(accessToken: String)
+    suspend fun disconnect()
+    suspend fun sendMessage(text: String)
+    suspend fun sendAdminReply(targetUserId: String, text: String)
+    suspend fun loadHistory(page: Int = 1, pageSize: Int = 20): List<ChatMessageDto>
+    suspend fun loadMessagesForUser(userId: String, page: Int = 1, pageSize: Int = 20): List<ChatMessageDto>
+    suspend fun getConversations(): List<ConversationSummaryDto>
+    fun setActiveUserId(userId: String?)
+}
+
+enum class ChatConnectionStatus {
+    DISCONNECTED,
+    CONNECTING,
+    CONNECTED,
+    ERROR
 }
 
 /**
  * User Profile Repository Interface
  */
 interface IUserRepository {
-    suspend fun getUserProfile(token: String): Result<UserProfileDto>
-    suspend fun updateUserProfile(token: String, request: UpdateProfileRequest): Result<UserProfileDto>
-    suspend fun changePassword(token: String, request: ChangeUserPasswordDto): Result<Unit>
+    suspend fun getUserProfile(): Result<UserProfileDto>
+    suspend fun updateUserProfile(request: UpdateProfileRequest): Result<UserProfileDto>
+    suspend fun changePassword(request: ChangeUserPasswordDto): Result<Unit>
 }
 
 /**
  * Admin Repository Interface
  */
 interface IAdminRepository {
-    suspend fun getUsers(token: String): Result<List<AdminUserDto>>
-    suspend fun createUser(token: String, request: CreateAdminUserRequest): Result<AdminUserDto>
-    suspend fun updateUser(token: String, userId: String, request: UpdateAdminUserRequest): Result<AdminUserDto>
-    suspend fun deleteUser(token: String, userId: String): Result<Unit>
+    suspend fun getUsers(): Result<List<AdminUserDto>>
+    suspend fun createUser(request: CreateAdminUserRequest): Result<AdminUserDto>
+    suspend fun updateUser(userId: String, request: UpdateAdminUserRequest): Result<AdminUserDto>
+    suspend fun deleteUser(userId: String): Result<Unit>
 
-    suspend fun createProduct(token: String, request: ProductUpsertRequest): Result<Unit>
-    suspend fun updateProduct(token: String, productId: String, request: UpdateProductRequest): Result<Unit>
-    suspend fun deleteProduct(token: String, productId: String): Result<Unit>
+    suspend fun createProduct(request: ProductUpsertRequest): Result<Unit>
+    suspend fun updateProduct(productId: String, request: UpdateProductRequest): Result<Unit>
+    suspend fun deleteProduct(productId: String): Result<Unit>
 }

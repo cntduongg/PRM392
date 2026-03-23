@@ -59,22 +59,6 @@ class AppViewModel(
         loadProducts()
     }
 
-    private suspend fun resolveAccessToken(): String {
-        val stateToken = _uiState.value.accessToken
-        if (stateToken.isNotBlank()) return stateToken
-
-        val storedToken = tokenManager.getAccessToken().orEmpty()
-        if (storedToken.isNotBlank()) {
-            _uiState.update {
-                it.copy(
-                    isLoggedIn = true,
-                    accessToken = storedToken
-                )
-            }
-        }
-        return storedToken
-    }
-
     fun selectTab(tab: NavTab) {
         if ((tab == NavTab.PROFILE || tab == NavTab.CART) && !_uiState.value.isLoggedIn) {
             navigateToLogin()
@@ -191,6 +175,7 @@ class AppViewModel(
                 }
             }
             "orders" -> navigateToScreen("profile")
+            "chat" -> navigateToScreen("home")
             "admin_dashboard" -> navigateToScreen("profile")
             "category_detail" -> {
                 _uiState.update { it.copy(currentScreen = "category", selectedCategory = null) }
@@ -210,6 +195,15 @@ class AppViewModel(
         loadProducts()
         loadOrders()
     }
+
+    fun navigateToChat() {
+        if (!_uiState.value.isLoggedIn) {
+            navigateToLogin()
+            return
+        }
+        _uiState.update { it.copy(currentScreen = "chat") }
+    }
+
 
     fun setLoading(isLoading: Boolean) {
         _uiState.update { it.copy(isLoading = isLoading) }
@@ -233,7 +227,7 @@ class AppViewModel(
 
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
-            setError("Vui lòng nhập email và mật khẩu.")
+            setError("Vui lÃ²ng nháº­p email vÃ  máº­t kháº©u.")
             return
         }
 
@@ -279,7 +273,7 @@ class AppViewModel(
                     }
                 }
                 .onFailure {
-                    setError(it.message ?: "Đăng nhập thất bại")
+                    setError(it.message ?: "ÄÄng nháº­p tháº¥t báº¡i")
                 }
             setLoading(false)
         }
@@ -287,7 +281,7 @@ class AppViewModel(
 
     fun register(name: String, email: String, password: String) {
         if (name.isBlank() || email.isBlank() || password.length < 6) {
-            setError("Thông tin đăng ký chưa hợp lệ (mật khẩu tối thiểu 6 ký tự).")
+            setError("ThÃ´ng tin ÄÄng kÃ½ chÆ°a há»£p lá» (máº­t kháº©u tá»i thiá»u 6 kÃ½ tá»±).")
             return
         }
 
@@ -331,7 +325,7 @@ class AppViewModel(
                     loadCart()
                 }
                 .onFailure {
-                    setError(it.message ?: "Đăng ký thất bại")
+                    setError(it.message ?: "ÄÄng kÃ½ tháº¥t báº¡i")
                 }
             setLoading(false)
         }
@@ -371,7 +365,7 @@ class AppViewModel(
                     _uiState.update { it.copy(products = response.items.orEmpty()) }
                 }
                 .onFailure {
-                    setError(it.message ?: "Không thể tải sản phẩm")
+                    setError(it.message ?: "KhÃ´ng thá» táº£i sáº£n pháº©m")
                 }
             setLoading(false)
         }
@@ -384,17 +378,16 @@ class AppViewModel(
                     _uiState.update { it.copy(categories = categories) }
                 }
                 .onFailure {
-                    setError(it.message ?: "Không thể tải danh mục")
+                    setError(it.message ?: "KhÃ´ng thá» táº£i danh má»¥c")
                 }
         }
     }
 
     fun loadUserProfile(silent: Boolean = false) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
+        if (!_uiState.value.isLoggedIn) return
 
         viewModelScope.launch {
-            userRepository.getUserProfile(token)
+            userRepository.getUserProfile()
                 .onSuccess { profile ->
                     tokenManager.saveUserInfo(
                         userId = profile.id,
@@ -417,21 +410,20 @@ class AppViewModel(
                 }
                 .onFailure {
                     if (!silent) {
-                        setError(it.message ?: "Không thể tải hồ sơ người dùng")
+                        setError(it.message ?: "KhÃ´ng thá» táº£i há» sÆ¡ ngÆ°á»i dÃ¹ng")
                     }
                 }
         }
     }
 
     fun updateProfile(fullName: String, phoneNumber: String, address: String) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) {
-            setError("Bạn cần đăng nhập để cập nhật hồ sơ.")
+        if (!_uiState.value.isLoggedIn) {
+            setError("Báº¡n cáº§n ÄÄng nháº­p Äá» cáº­p nháº­t há» sÆ¡.")
             return
         }
 
         if (fullName.isBlank()) {
-            setError("Họ tên không được để trống.")
+            setError("Há» tÃªn khÃ´ng ÄÆ°á»£c Äá» trá»ng.")
             return
         }
 
@@ -443,7 +435,7 @@ class AppViewModel(
                 phoneNumber = phoneNumber,
                 address = address
             )
-            userRepository.updateUserProfile(token, request)
+            userRepository.updateUserProfile(request)
                 .onSuccess { profile ->
                     tokenManager.saveUserInfo(
                         userId = profile.id,
@@ -466,31 +458,30 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Cập nhật hồ sơ thất bại")
+                    setError(it.message ?: "Cáº­p nháº­t há» sÆ¡ tháº¥t báº¡i")
                 }
             setLoading(false)
         }
     }
 
     fun changePassword(currentPassword: String, newPassword: String, confirmPassword: String) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) {
-            setError("Bạn cần đăng nhập để đổi mật khẩu.")
+        if (!_uiState.value.isLoggedIn) {
+            setError("Báº¡n cáº§n ÄÄng nháº­p Äá» Äá»i máº­t kháº©u.")
             return
         }
 
         if (currentPassword.isBlank() || newPassword.isBlank() || confirmPassword.isBlank()) {
-            setError("Vui lòng nhập đầy đủ thông tin đổi mật khẩu.")
+            setError("Vui lÃ²ng nháº­p Äáº§y Äá»§ thÃ´ng tin Äá»i máº­t kháº©u.")
             return
         }
 
         if (newPassword.length < 6) {
-            setError("Mật khẩu mới phải có ít nhất 6 ký tự.")
+            setError("Máº­t kháº©u má»i pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±.")
             return
         }
 
         if (newPassword != confirmPassword) {
-            setError("Xác nhận mật khẩu không khớp.")
+            setError("XÃ¡c nháº­n máº­t kháº©u khÃ´ng khá»p.")
             return
         }
 
@@ -498,7 +489,6 @@ class AppViewModel(
             setLoading(true)
             clearError()
             userRepository.changePassword(
-                token,
                 ChangeUserPasswordDto(
                     oldPassword = currentPassword,
                     newPassword = newPassword
@@ -508,21 +498,21 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Đổi mật khẩu thất bại")
+                    setError(it.message ?: "Äá»i máº­t kháº©u tháº¥t báº¡i")
                 }
             setLoading(false)
         }
     }
+
     fun addToCart(productId: String, quantity: Int = 1) {
+        if (!_uiState.value.isLoggedIn) {
+            clearError()
+            navigateToLogin()
+            return
+        }
         viewModelScope.launch {
-            val token = resolveAccessToken()
-            if (token.isBlank() || !_uiState.value.isLoggedIn) {
-                clearError()
-                navigateToLogin()
-                return@launch
-            }
             setLoading(true)
-            cartRepository.addToCart(token, AddToCartRequest(productId = productId, quantity = quantity))
+            cartRepository.addToCart(AddToCartRequest(productId = productId, quantity = quantity))
                 .onSuccess { cart ->
                     _uiState.update { it.copy(cart = cart) }
                     loadCart()
@@ -535,11 +525,10 @@ class AppViewModel(
     }
 
     fun loadCart() {
-        viewModelScope.launch {
-            val token = resolveAccessToken()
-            if (token.isBlank()) return@launch
+        if (!_uiState.value.isLoggedIn) return
 
-            cartRepository.getCart(token)
+        viewModelScope.launch {
+            cartRepository.getCart()
                 .onSuccess { cart ->
                     _uiState.update { it.copy(cart = cart) }
                 }
@@ -557,11 +546,8 @@ class AppViewModel(
 
     fun removeCartItem(itemId: String) {
         viewModelScope.launch {
-            val token = resolveAccessToken()
-            if (token.isBlank()) return@launch
-
             setLoading(true)
-            cartRepository.removeFromCart(token, itemId)
+            cartRepository.removeFromCart(itemId)
                 .onSuccess { cart -> _uiState.update { it.copy(cart = cart) } }
                 .onFailure { setError(it.message ?: "Khong the xoa san pham") }
             setLoading(false)
@@ -583,11 +569,8 @@ class AppViewModel(
     fun updateCartItemQuantity(itemId: String, quantity: Int) {
         val safeQuantity = quantity.coerceAtLeast(1)
         viewModelScope.launch {
-            val token = resolveAccessToken()
-            if (token.isBlank()) return@launch
-
             setLoading(true)
-            cartRepository.updateCartItem(token, itemId, safeQuantity)
+            cartRepository.updateCartItem(itemId, safeQuantity)
                 .onSuccess { cart -> _uiState.update { it.copy(cart = cart) } }
                 .onFailure { setError(it.message ?: "Khong the cap nhat so luong san pham") }
             setLoading(false)
@@ -595,15 +578,14 @@ class AppViewModel(
     }
 
     fun clearCart() {
-        viewModelScope.launch {
-            val token = resolveAccessToken()
-            if (token.isBlank()) {
-                navigateToLogin()
-                return@launch
-            }
+        if (!_uiState.value.isLoggedIn) {
+            navigateToLogin()
+            return
+        }
 
+        viewModelScope.launch {
             setLoading(true)
-            cartRepository.clearCart(token)
+            cartRepository.clearCart()
                 .onSuccess {
                     loadCart()
                     clearError()
@@ -622,18 +604,18 @@ class AppViewModel(
             return
         }
 
+        if (!_uiState.value.isLoggedIn) {
+            navigateToLogin()
+            return
+        }
+
         viewModelScope.launch {
-            val token = resolveAccessToken()
-            if (token.isBlank()) {
-                navigateToLogin()
-                return@launch
-            }
             setLoading(true)
             val request = CreateOrderRequest(
                 paymentMethod = "COD",
                 billingAddress = address
             )
-            orderRepository.createOrder(token, request)
+            orderRepository.createOrder(request)
                 .onSuccess { order ->
                     loadOrders()
                     loadCart()
@@ -654,9 +636,8 @@ class AppViewModel(
     }
 
     fun createPaymentForPendingOrder() {
-        val token = _uiState.value.accessToken
         val order = _uiState.value.pendingOrder
-        if (token.isBlank() || order == null) {
+        if (!_uiState.value.isLoggedIn || order == null) {
             setError("Chua co don hang de thanh toan.")
             return
         }
@@ -664,7 +645,6 @@ class AppViewModel(
         viewModelScope.launch {
             setLoading(true)
             paymentRepository.createPayment(
-                token,
                 CreatePaymentRequest(
                     orderId = order.id,
                     amount = order.totalPrice.roundToInt(),
@@ -682,11 +662,11 @@ class AppViewModel(
     }
 
     fun loadOrders() {
+        if (!_uiState.value.isLoggedIn) return
+
         viewModelScope.launch {
-            val token = resolveAccessToken()
-            if (token.isBlank()) return@launch
             setLoading(true)
-            orderRepository.getOrders(token)
+            orderRepository.getOrders()
                 .onSuccess { response -> _uiState.update { it.copy(orders = response.items.orEmpty()) } }
                 .onFailure { setError(it.message ?: "Khong the tai don hang") }
             setLoading(false)
@@ -730,14 +710,13 @@ class AppViewModel(
     }
 
     fun loadAdminUsers() {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
+        if (!_uiState.value.isLoggedIn) return
 
         viewModelScope.launch {
             setLoading(true)
-            adminRepository.getUsers(token)
+            adminRepository.getUsers()
                 .onSuccess { users -> _uiState.update { it.copy(adminUsers = users) } }
-                .onFailure { setError(it.message ?: "Không thể tải danh sách người dùng") }
+                .onFailure { setError(it.message ?: "KhÃ´ng thá» táº£i danh sÃ¡ch ngÆ°á»i dÃ¹ng") }
             setLoading(false)
         }
     }
@@ -750,11 +729,10 @@ class AppViewModel(
         address: String,
         role: String
     ) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
+        if (!_uiState.value.isLoggedIn) return
 
         if (username.isBlank() || email.isBlank() || password.length < 6) {
-            setError("Thông tin user không hợp lệ.")
+            setError("ThÃ´ng tin user khÃ´ng há»£p lá».")
             return
         }
 
@@ -768,13 +746,13 @@ class AppViewModel(
                 address = address.ifBlank { null },
                 role = role.ifBlank { "Customer" }
             )
-            adminRepository.createUser(token, request)
+            adminRepository.createUser(request)
                 .onSuccess {
                     loadAdminUsers()
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Tạo user thất bại")
+                    setError(it.message ?: "Táº¡o user tháº¥t báº¡i")
                 }
             setLoading(false)
         }
@@ -789,11 +767,10 @@ class AppViewModel(
         role: String,
         password: String
     ) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
+        if (!_uiState.value.isLoggedIn) return
 
         if (username.isBlank() || email.isBlank()) {
-            setError("Thiếu thông tin để cập nhật user.")
+            setError("Thiáº¿u thÃ´ng tin Äá» cáº­p nháº­t user.")
             return
         }
 
@@ -807,30 +784,29 @@ class AppViewModel(
                 role = role.ifBlank { "Customer" },
                 password = password.ifBlank { null }
             )
-            adminRepository.updateUser(token, userId, request)
+            adminRepository.updateUser(userId, request)
                 .onSuccess {
                     loadAdminUsers()
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Cập nhật user thất bại")
+                    setError(it.message ?: "Cáº­p nháº­t user tháº¥t báº¡i")
                 }
             setLoading(false)
         }
     }
 
     fun deleteAdminUser(userId: String) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
+        if (!_uiState.value.isLoggedIn) return
 
         viewModelScope.launch {
             setLoading(true)
-            adminRepository.deleteUser(token, userId)
+            adminRepository.deleteUser(userId)
                 .onSuccess {
                     loadAdminUsers()
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "Xóa user thất bại") }
+                .onFailure { setError(it.message ?: "XÃ³a user tháº¥t báº¡i") }
             setLoading(false)
         }
     }
@@ -845,12 +821,11 @@ class AppViewModel(
         technicalSpecifications: String,
         imageUrl: String
     ) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
+        if (!_uiState.value.isLoggedIn) return
 
         val parsedPrice = price.toDoubleOrNull()
         if (productName.isBlank() || parsedPrice == null) {
-            setError("Thông tin sản phẩm không hợp lệ")
+            setError("ThÃ´ng tin sáº£n pháº©m khÃ´ng há»£p lá»")
             return
         }
 
@@ -866,12 +841,12 @@ class AppViewModel(
                 technicalSpecifications = technicalSpecifications.ifBlank { null },
                 imageUrl = imageUrl.ifBlank { null }
             )
-            adminRepository.createProduct(token, request)
+            adminRepository.createProduct(request)
                 .onSuccess {
                     loadProducts()
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "Tạo sản phẩm thất bại") }
+                .onFailure { setError(it.message ?: "Táº¡o sáº£n pháº©m tháº¥t báº¡i") }
             setLoading(false)
         }
     }
@@ -887,12 +862,11 @@ class AppViewModel(
         technicalSpecifications: String,
         imageUrl: String
     ) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
+        if (!_uiState.value.isLoggedIn) return
 
         val parsedPrice = price.toDoubleOrNull()
         if (productName.isBlank() || parsedPrice == null) {
-            setError("Thông tin sản phẩm không hợp lệ")
+            setError("ThÃ´ng tin sáº£n pháº©m khÃ´ng há»£p lá»")
             return
         }
 
@@ -909,28 +883,27 @@ class AppViewModel(
                 technicalSpecifications = technicalSpecifications.ifBlank { null },
                 imageUrl = imageUrl.ifBlank { null }
             )
-            adminRepository.updateProduct(token, productId, request)
+            adminRepository.updateProduct(productId, request)
                 .onSuccess {
                     loadProducts()
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "Cập nhật sản phẩm thất bại") }
+                .onFailure { setError(it.message ?: "Cáº­p nháº­t sáº£n pháº©m tháº¥t báº¡i") }
             setLoading(false)
         }
     }
 
     fun deleteAdminProduct(productId: String) {
-        val token = _uiState.value.accessToken
-        if (token.isBlank()) return
+        if (!_uiState.value.isLoggedIn) return
 
         viewModelScope.launch {
             setLoading(true)
-            adminRepository.deleteProduct(token, productId)
+            adminRepository.deleteProduct(productId)
                 .onSuccess {
                     loadProducts()
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "Xóa sản phẩm thất bại") }
+                .onFailure { setError(it.message ?: "XÃ³a sáº£n pháº©m tháº¥t báº¡i") }
             setLoading(false)
         }
     }

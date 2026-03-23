@@ -269,28 +269,23 @@ data class NotificationBadgeDto(
  */
 
 data class ChatMessageDto(
-    @SerializedName(value = "chatMessageId", alternate = ["id"])
-    val id: String = "",
-    @SerializedName("conversationId")
-    val conversationId: String? = null,
-    @SerializedName(value = "senderId", alternate = ["userId"])
-    val senderId: String = "",
-    @SerializedName("senderName")
-    val senderName: String = "",
-    val senderAvatar: String? = null,
-    val message: String = "",
-    @SerializedName(value = "timestamp", alternate = ["sentAt"])
-    val timestamp: String = "",
-    val isRead: Boolean = false
+    @SerializedName("chatMessageId") val id: String,
+    @SerializedName("userId") val userId: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("sentAt") val sentAt: String,
+    @SerializedName("isFromAdmin") val isFromAdmin: Boolean
 )
 
-data class SendChatMessageRequest(
-    val conversationId: String? = null,
-    val message: String
+data class SendMessageRequest(
+    @SerializedName("message") val message: String
 )
 
-data class SendMessageDto(
-    val message: String
+data class ConversationSummaryDto(
+    @SerializedName("userId") val userId: String,
+    @SerializedName("userName") val userName: String,
+    @SerializedName("lastMessage") val lastMessage: String,
+    @SerializedName("lastMessageAt") val lastMessageAt: String,
+    @SerializedName("unreadCount") val unreadCount: Int
 )
 
 /**
