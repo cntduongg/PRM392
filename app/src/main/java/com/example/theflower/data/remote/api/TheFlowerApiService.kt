@@ -131,14 +131,27 @@ interface TheFlowerApiService {
     @PUT("api/Notifications/read-all")
     suspend fun markAllNotificationsAsRead(): ApiResponse<Any>
 
+    // ─── Chat Endpoints ──────────────────────────────────────────────────────
+
     @GET("api/Chats/messages")
     suspend fun getChatMessages(
-        @Query("Page") page: Int = 1,
-        @Query("PageSize") pageSize: Int = 20
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 30
     ): ApiResponse<List<ChatMessageDto>>
 
     @POST("api/Chats/messages")
     suspend fun sendChatMessage(
-        @Body request: SendMessageDto
+        @Body request: SendMessageRequest
     ): ApiResponse<ChatMessageDto>
+
+    @GET("api/Chats/conversations")
+    suspend fun getConversations(): ApiResponse<List<ConversationSummaryDto>>
+
+    @GET("api/Chats/messages/{userId}")
+    suspend fun getMessagesForUser(
+        @Path("userId") userId: String,
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 30
+    ): ApiResponse<List<ChatMessageDto>>
 }
+

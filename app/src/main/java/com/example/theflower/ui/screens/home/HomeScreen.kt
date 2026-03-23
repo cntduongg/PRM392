@@ -509,36 +509,49 @@ fun ProductCard(
     product: Product,
     onClick: () -> Unit
 ) {
-    Column(
+    Card(
         modifier = Modifier
+            .fillMaxWidth()
+            .height(230.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = Sand)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .background(Sand),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🌸",
-                fontSize = MaterialTheme.typography.headlineLarge.fontSize
-            )
-        }
-        Column(modifier = Modifier.padding(8.dp)) {
-            Text(
-                text = product.name,
-                style = MaterialTheme.typography.labelMedium,
-                color = SoilBrown,
-                maxLines = 2
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "₫${product.price}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MossGreen
-            )
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .background(Color(0xFFE8DFD8)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "🌸",
+                    fontSize = MaterialTheme.typography.headlineLarge.fontSize
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = SoilBrown,
+                    maxLines = 2,
+                    minLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                Text(
+                    text = "₫${product.price}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MossGreen
+                )
+            }
         }
     }
 }

@@ -1,41 +1,32 @@
 package com.example.theflower.ui.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.theflower.data.remote.dtos.CategoryDto
 import com.example.theflower.data.remote.dtos.OrderDto
 import com.example.theflower.data.remote.dtos.ProductDto
-import com.example.theflower.ui.components.BottomNavBar
+import com.example.theflower.ui.components.AppTopBar
 import com.example.theflower.ui.components.NavTab
-import com.example.theflower.ui.theme.PaperWhite
-import com.example.theflower.ui.theme.SandDark
-import com.example.theflower.ui.theme.SoilBrown
+import com.example.theflower.ui.theme.*
 
 // ─── CategoryListScreen ───────────────────────────────────────────────────────
-// Gọi bởi: MainAppLayout() khi NavTab.CATEGORY
+// Called by: MainAppLayout() when NavTab.CATEGORY
 
 @Composable
 internal fun CategoryListScreen(
@@ -44,37 +35,102 @@ internal fun CategoryListScreen(
     products: List<ProductDto>,
     onCategoryClick: (CategoryDto) -> Unit
 ) {
-    Column(
+    if (categories.isEmpty()) {
+        EmptyState(message = "Chưa có danh mục nào\nVui lòng thử lại sau 🌸")
+        return
+    }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .background(PaperWhite)
+            .padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(vertical = 14.dp)
     ) {
-        Text(
-            text = "Danh mục sản phẩm",
-            style = MaterialTheme.typography.headlineSmall,
-            color = SoilBrown
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (categories.isEmpty()) {
-            EmptyState(message = "Không có danh mục")
-            return
+        items(categories) { category ->
+            CategoryCard(
+                category = category,
+                productCount = products.count { it.categoryId == category.id },
+                onClick = { onCategoryClick(category) }
+            )
         }
+    }
+}
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(categories) { category ->
-                CategoryListItem(
-                    category = category,
-                    productCount = products.count { it.categoryId == category.id },
-                    onClick = { onCategoryClick(category) }
+// ─── CategoryCard (grid cell) ─────────────────────────────────────────────────
+
+@Composable
+private fun CategoryCard(
+    category: CategoryDto,
+    productCount: Int,
+    onClick: () -> Unit
+) {
+    // Alternating warm tones
+    val bgColor = if (productCount % 2 == 0) Sand else WarmPeach
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("🌺", fontSize = 34.sp)
+                Column {
+                    Text(
+                        category.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = SoilBrown,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (category.description.isNotBlank()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            category.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SandDark,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            // Product count badge
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MossGreen)
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    text = "$productCount",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PaperWhite,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
     }
 }
 
-// ─── CategoryListItem ─────────────────────────────────────────────────────────
+// ─── CategoryListItem (kept for any list-mode usage) ─────────────────────────
 
 @Composable
 internal fun CategoryListItem(
@@ -87,7 +143,7 @@ internal fun CategoryListItem(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = com.example.theflower.ui.theme.Sand)
+        colors = CardDefaults.cardColors(containerColor = Sand)
     ) {
         Row(
             modifier = Modifier
@@ -96,38 +152,49 @@ internal fun CategoryListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "» ${category.name}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = SoilBrown,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                if (category.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("🌺", fontSize = 24.sp)
+                Column {
                     Text(
-                        text = category.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SandDark,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        category.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = SoilBrown,
+                        fontWeight = FontWeight.SemiBold
                     )
+                    if (category.description.isNotBlank()) {
+                        Text(
+                            category.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SandDark,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "($productCount)",
-                style = MaterialTheme.typography.bodyMedium,
-                color = SandDark
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MossGreen.copy(alpha = 0.15f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    "$productCount sản phẩm",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MossGreen,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
 
 // ─── CategoryProductsScreen ───────────────────────────────────────────────────
-// Gọi bởi: AppNavigation() khi route = "category_detail"
+// Called by: AppNavigation() when route = "category_detail"
 
 @Composable
 internal fun CategoryProductsScreen(
@@ -148,16 +215,17 @@ internal fun CategoryProductsScreen(
 
     Scaffold(
         containerColor = PaperWhite,
+        topBar = {
+            AppTopBar(
+                title = category?.name ?: "Danh mục",
+                cartItemCount = cartItemCount,
+                onMenuClick = onBack,
+                onCartClick = { onTabClick(NavTab.CART) }
+            )
+        },
         bottomBar = {
-            Column {
-                if (pendingOrder != null) {
-                    PendingOrderBar(order = pendingOrder, onPay = onPayPendingOrder)
-                }
-                BottomNavBar(
-                    currentTab = currentTab,
-                    cartItemCount = cartItemCount,
-                    onTabClick = onTabClick
-                )
+            if (pendingOrder != null) {
+                PendingOrderBar(order = pendingOrder, onPay = onPayPendingOrder)
             }
         }
     ) { padding ->
@@ -165,33 +233,14 @@ internal fun CategoryProductsScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "←",
-                    modifier = Modifier.clickable(onClick = onBack),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = SoilBrown
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = category?.name ?: "Danh mục",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = SoilBrown
-                    )
-                    Text(
-                        text = "${categoryProducts.size} sản phẩm",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = SandDark
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                "${categoryProducts.size} sản phẩm",
+                style = MaterialTheme.typography.bodyMedium,
+                color = SandDark
+            )
+            Spacer(Modifier.height(10.dp))
 
             if (category == null) {
                 EmptyState(message = "Không tìm thấy danh mục")
@@ -199,13 +248,12 @@ internal fun CategoryProductsScreen(
             }
 
             if (categoryProducts.isEmpty()) {
-                EmptyState(message = "Danh mục này chưa có sản phẩm")
+                EmptyState(message = "Danh mục này chưa có sản phẩm 🌱")
                 return@Column
             }
 
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.heightIn(min = 0.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(categoryProducts) { product ->
                     ProductListItem(

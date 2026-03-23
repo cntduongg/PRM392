@@ -1,76 +1,161 @@
 package com.example.theflower.data.repository
 
-import com.example.theflower.data.exceptions.ApiException
 import com.example.theflower.data.remote.api.TheFlowerApiService
 import com.example.theflower.data.remote.dtos.ChatMessageDto
-import com.example.theflower.data.remote.dtos.SendChatMessageRequest
-import com.example.theflower.data.remote.dtos.SendMessageDto
+import com.example.theflower.data.remote.dtos.ConversationSummaryDto
+import com.example.theflower.data.remote.dtos.SendMessageRequest
+import com.example.theflower.domain.repositories.ChatConnectionStatus
 import com.example.theflower.domain.repositories.IChatRepository
-import retrofit2.HttpException
+import com.microsoft.signalr.HubConnection
+import com.microsoft.signalr.HubConnectionBuilder
+import com.microsoft.signalr.HubConnectionState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
-/**
- * Chat Repository Implementation
- * Handles chat message retrieval and sending
- */
 class ChatRepositoryImpl(
-    private val apiService: TheFlowerApiService
+    private val apiService: TheFlowerApiService,
+    private val baseUrl: String
 ) : IChatRepository {
+
+    private var hubConnection: HubConnection? = null
     
-    /**
-     * Get all chat conversations
-     */
-    override suspend fun getChatConversations(): Result<List<ChatMessageDto>> {
-        return try {
-            val response = apiService.getChatMessages(page = 1, pageSize = 50)
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ServerError(500, response.message))
+    private val _messages = MutableStateFlow<List<ChatMessageDto>>(emptyList())
+    override val messages: StateFlow<List<ChatMessageDto>> = _messages.asStateFlow()
+
+    private var activeUserId: String? = null
+
+    private val _connectionStatus = MutableStateFlow(ChatConnectionStatus.DISCONNECTED)
+    override val connectionStatus: StateFlow<ChatConnectionStatus> = _connectionStatus.asStateFlow()
+
+    private val repositoryScope = CoroutineScope(Dispatchers.IO)
+
+    override suspend fun connect(accessToken: String) {
+        if (hubConnection?.connectionState == HubConnectionState.CONNECTED) return
+
+        _connectionStatus.value = ChatConnectionStatus.CONNECTING
+        
+        val hubUrl = if (baseUrl.endsWith("/")) "${baseUrl}hub/chat" else "$baseUrl/hub/chat"
+        
+        try {
+            hubConnection = HubConnectionBuilder.create(hubUrl)
+                .withAccessTokenProvider(io.reactivex.rxjava3.core.Single.just(accessToken))
+                .build()
+
+            // Handle incoming messages
+            hubConnection?.on("ReceiveMessage", { message: ChatMessageDto ->
+                Timber.d("Received message: ${message.message} from ${message.userId}")
+                // If we are admin viewing a specific user, or regular user
+                if (activeUserId == null || message.userId == activeUserId) {
+                    val currentList = _messages.value.toMutableList()
+                    currentList.add(message)
+                    _messages.value = currentList
+                }
+            }, ChatMessageDto::class.java)
+
+            // Handle incoming admin notifications about user messages (for admin view)
+            hubConnection?.on("ReceiveUserMessage", { data: Map<String, Any> ->
+                // To refresh conversations list dynamically (handled via Flow in ViewModel)
+                Timber.d("Admin received ReceiveUserMessage event")
+                // For simplicity we rely on REST to refresh conversations when needed
+            }, Map::class.java)
+
+            hubConnection?.onClosed { exception ->
+                Timber.e(exception, "SignalR Connection Closed")
+                _connectionStatus.value = ChatConnectionStatus.DISCONNECTED
             }
-        } catch (e: HttpException) {
-            Result.failure(ApiException.handleException(e))
+
+            hubConnection?.start()?.blockingAwait()
+            _connectionStatus.value = ChatConnectionStatus.CONNECTED
+            Timber.d("SignalR Connected to $hubUrl")
+            
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(errorCause = e))
+            Timber.e(e, "Failed to connect to SignalR")
+            _connectionStatus.value = ChatConnectionStatus.ERROR
         }
     }
-    
-    /**
-     * Get messages from specific conversation
-     */
-    override suspend fun getConversationMessages(conversationId: String): Result<List<ChatMessageDto>> {
-        return try {
-            val response = apiService.getChatMessages(page = 1, pageSize = 100)
-            if (response.success && response.data != null) {
-                Result.success(
-                    response.data.filter { it.conversationId == null || it.conversationId == conversationId }
-                )
-            } else {
-                Result.failure(ApiException.NotFound("Conversation not found"))
+
+    override suspend fun disconnect() {
+        hubConnection?.stop()?.blockingAwait()
+        hubConnection = null
+        _connectionStatus.value = ChatConnectionStatus.DISCONNECTED
+    }
+
+    override suspend fun sendMessage(text: String) {
+        if (hubConnection?.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection?.send("SendMessage", text)
+        } else {
+            // Fallback to REST
+            try {
+                val response = apiService.sendChatMessage(SendMessageRequest(text))
+                if (response.success && response.data != null) {
+                    val currentList = _messages.value.toMutableList()
+                    currentList.add(response.data)
+                    _messages.value = currentList
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "REST Send fallback failed")
             }
-        } catch (e: HttpException) {
-            Result.failure(ApiException.handleException(e))
-        } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
-    
-    /**
-     * Send chat message
-     */
-    override suspend fun sendChatMessage(
-        request: SendChatMessageRequest
-    ): Result<ChatMessageDto> {
+
+    override suspend fun sendAdminReply(targetUserId: String, text: String) {
+        if (hubConnection?.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection?.send("SendMessageToUser", targetUserId, text)
+        }
+    }
+
+    override suspend fun loadHistory(page: Int, pageSize: Int): List<ChatMessageDto> {
         return try {
-            val response = apiService.sendChatMessage(SendMessageDto(request.message))
-            if (response.success && response.data != null) {
-                Result.success(response.data)
-            } else {
-                Result.failure(ApiException.ValidationError(response.message))
-            }
-        } catch (e: HttpException) {
-            Result.failure(ApiException.handleException(e))
+            val response = apiService.getChatMessages(page, pageSize)
+            if (response.success) {
+                val history = response.data ?: emptyList()
+                // Update message list with history if it's page 1
+                if (page == 1) {
+                    _messages.value = history
+                }
+                history
+            } else emptyList()
         } catch (e: Exception) {
-            Result.failure(ApiException.NetworkError(errorCause = e))
+            Timber.e(e, "Failed to load chat history")
+            emptyList()
+        }
+    }
+
+    override suspend fun getConversations(): List<ConversationSummaryDto> {
+        return try {
+            val response = apiService.getConversations()
+            if (response.success) response.data ?: emptyList() else emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    override suspend fun loadMessagesForUser(userId: String, page: Int, pageSize: Int): List<ChatMessageDto> {
+        return try {
+            val response = apiService.getMessagesForUser(userId, page, pageSize)
+            if (response.success) {
+                val history = response.data ?: emptyList()
+                if (page == 1) {
+                    _messages.value = history
+                }
+                history
+            } else emptyList()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load messages for user: $userId")
+            emptyList()
+        }
+    }
+
+    override fun setActiveUserId(userId: String?) {
+        activeUserId = userId
+        if (userId == null) {
+            // Clear messages when exiting chat view
+            _messages.value = emptyList()
         }
     }
 }

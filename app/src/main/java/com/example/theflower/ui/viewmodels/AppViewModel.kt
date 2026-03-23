@@ -175,6 +175,7 @@ class AppViewModel(
                 }
             }
             "orders" -> navigateToScreen("profile")
+            "chat" -> navigateToScreen("home")
             "admin_dashboard" -> navigateToScreen("profile")
             "category_detail" -> {
                 _uiState.update { it.copy(currentScreen = "category", selectedCategory = null) }
@@ -194,6 +195,15 @@ class AppViewModel(
         loadProducts()
         loadOrders()
     }
+
+    fun navigateToChat() {
+        if (!_uiState.value.isLoggedIn) {
+            navigateToLogin()
+            return
+        }
+        _uiState.update { it.copy(currentScreen = "chat") }
+    }
+
 
     fun setLoading(isLoading: Boolean) {
         _uiState.update { it.copy(isLoading = isLoading) }

@@ -1,44 +1,25 @@
 package com.example.theflower.ui.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.theflower.ui.theme.MossGreen
-import com.example.theflower.ui.theme.PaperWhite
-import com.example.theflower.ui.theme.Sand
-import com.example.theflower.ui.theme.SandDark
-import com.example.theflower.ui.theme.SoilBrown
+import androidx.compose.ui.unit.sp
+import com.example.theflower.ui.theme.*
 
 // ─── ProfileApiScreen ─────────────────────────────────────────────────────────
-// Gọi bởi: MainAppLayout() khi NavTab.PROFILE
+// Called by: MainAppLayout() when NavTab.PROFILE
 
 @Composable
 internal fun ProfileApiScreen(
@@ -59,7 +40,6 @@ internal fun ProfileApiScreen(
     var fullNameInput by remember { mutableStateOf(userName) }
     var phoneInput by remember { mutableStateOf(userPhone) }
     var addressInput by remember { mutableStateOf(userAddress) }
-
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -73,193 +53,223 @@ internal fun ProfileApiScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(PaperWhite)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Tài khoản", style = MaterialTheme.typography.headlineSmall, color = SoilBrown)
-
-        // User info card + logout
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // ── Avatar header ──────────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MossGreen)
+                .padding(horizontal = 20.dp, vertical = 28.dp)
         ) {
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Sand)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(if (userName.isBlank()) "Nguoi dung" else userName, style = MaterialTheme.typography.titleMedium, color = SoilBrown)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(if (userEmail.isBlank()) "(chua co)" else userEmail, style = MaterialTheme.typography.bodyMedium, color = SandDark)
-                    if (userPhone.isNotBlank()) {
-                        Text(userPhone, style = MaterialTheme.typography.bodySmall, color = SandDark)
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(PaperWhite.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (userName.isNotBlank()) userName.first().uppercaseChar().toString() else "👤",
+                        fontSize = 28.sp,
+                        color = PaperWhite,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Column {
+                    Text(
+                        if (userName.isNotBlank()) userName else "Người dùng",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = PaperWhite,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (userEmail.isNotBlank()) {
+                        Text(userEmail, style = MaterialTheme.typography.bodySmall, color = PaperWhite.copy(alpha = 0.85f))
                     }
-                    if (userAddress.isNotBlank()) {
-                        Text(userAddress, style = MaterialTheme.typography.bodySmall, color = SandDark)
+                    Spacer(Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(PaperWhite.copy(alpha = 0.2f))
+                            .padding(horizontal = 10.dp, vertical = 3.dp)
+                    ) {
+                        Text(userRole.uppercase(), style = MaterialTheme.typography.labelSmall, color = PaperWhite, fontWeight = FontWeight.Bold)
                     }
                 }
             }
-
-            Button(
-                onClick = onLogout,
-                modifier = Modifier
-                    .width(104.dp)
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SandDark),
-                shape = RoundedCornerShape(14.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
-            ) {
-                Text("Logout", color = PaperWhite, textAlign = TextAlign.Center)
-            }
         }
 
-        // Update profile card
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Sand)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("Cập nhật hồ sơ", style = MaterialTheme.typography.titleMedium, color = SoilBrown)
+            // ── Quick actions ──────────────────────────────────────────────────
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ProfileActionChip(icon = "📦", label = "Đơn hàng", modifier = Modifier.weight(1f)) { onViewOrders() }
+                if (!userRole.equals("ADMIN", ignoreCase = true)) {
+                    ProfileActionChip(icon = "🔍", label = "Tìm hoa", modifier = Modifier.weight(1f)) { onOpenCustomerProductActivity() }
+                }
+                if (userRole.equals("ADMIN", ignoreCase = true)) {
+                    ProfileActionChip(icon = "⚙️", label = "Admin", modifier = Modifier.weight(1f)) { onOpenAdminDashboard() }
+                }
+            }
 
+            // ── Update profile card ────────────────────────────────────────────
+            ProfileSection(title = "✏️  Cập nhật hồ sơ") {
                 OutlinedTextField(
                     value = fullNameInput,
                     onValueChange = { fullNameInput = it },
                     label = { Text("Họ tên") },
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
                     colors = botanicalOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 OutlinedTextField(
                     value = phoneInput,
                     onValueChange = { phoneInput = it },
                     label = { Text("Số điện thoại") },
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
                     colors = botanicalOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 OutlinedTextField(
                     value = addressInput,
                     onValueChange = { addressInput = it },
                     label = { Text("Địa chỉ") },
+                    shape = RoundedCornerShape(12.dp),
                     colors = botanicalOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 Button(
                     onClick = { onUpdateProfile(fullNameInput.trim(), phoneInput.trim(), addressInput.trim()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MossGreen),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MossGreen)
                 ) {
-                    Text("Lưu hồ sơ")
+                    Text("💾  Lưu hồ sơ", fontWeight = FontWeight.SemiBold)
                 }
-
                 if (!errorMessage.isNullOrBlank()) {
                     ErrorNote(message = errorMessage)
                 }
             }
-        }
 
-        // Change password card
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Sand)
-        ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("Đổi mật khẩu", style = MaterialTheme.typography.titleMedium, color = SoilBrown)
-
+            // ── Change password card ───────────────────────────────────────────
+            ProfileSection(title = "🔒  Đổi mật khẩu") {
                 OutlinedTextField(
                     value = currentPassword,
                     onValueChange = { currentPassword = it },
                     label = { Text("Mật khẩu hiện tại") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
                     colors = botanicalOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
                     label = { Text("Mật khẩu mới") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
                     colors = botanicalOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
                     label = { Text("Xác nhận mật khẩu mới") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
                     colors = botanicalOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 Button(
                     onClick = { onChangePassword(currentPassword, newPassword, confirmPassword) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = SoilBrown),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SoilBrown)
                 ) {
-                    Text("Đổi mật khẩu")
+                    Text("🔑  Đổi mật khẩu", fontWeight = FontWeight.SemiBold)
                 }
-
                 if (!errorMessage.isNullOrBlank()) {
                     ErrorNote(message = errorMessage)
                 }
             }
-        }
 
-        // Customer product list button
-        if (!userRole.equals("ADMIN", ignoreCase = true)) {
+            // ── Logout ────────────────────────────────────────────────────────
             Button(
-                onClick = onOpenCustomerProductActivity,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Sand),
-                shape = RoundedCornerShape(12.dp)
+                onClick = onLogout,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
             ) {
-                Text("Danh sách sản phẩm (search/filter)", color = SoilBrown)
+                Text(
+                    "🚪  Đăng xuất",
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
-        }
 
-        Button(
-            onClick = onViewOrders,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MossGreen),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Xem đơn hàng")
-        }
-
-        if (userRole.equals("ADMIN", ignoreCase = true)) {
-            Button(
-                onClick = onOpenAdminDashboard,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SoilBrown),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Admin Dashboard")
-            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
+
+// ─── ProfileSection ───────────────────────────────────────────────────────────
+
+@Composable
+private fun ProfileSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Sand),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = SoilBrown, fontWeight = FontWeight.SemiBold)
+            content()
+        }
+    }
+}
+
+// ─── ProfileActionChip ────────────────────────────────────────────────────────
+
+@Composable
+private fun ProfileActionChip(
+    icon: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Sand),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(icon, fontSize = 24.sp)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = SoilBrown, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+

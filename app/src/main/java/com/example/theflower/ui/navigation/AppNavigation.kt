@@ -1,27 +1,40 @@
 package com.example.theflower.ui.navigation
 
 import android.content.Intent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.example.theflower.ProductCatalogActivity
-import com.example.theflower.ui.components.BottomNavBar
+import com.example.theflower.ui.components.AppDrawerContent
+import com.example.theflower.ui.components.AppNotification
+import com.example.theflower.ui.components.AppTopBar
 import com.example.theflower.ui.components.NavTab
+import com.example.theflower.ui.components.NotificationModal
 import com.example.theflower.ui.theme.PaperWhite
+import com.example.theflower.ui.viewmodels.AdminChatViewModel
 import com.example.theflower.ui.viewmodels.AppViewModel
+import com.example.theflower.ui.viewmodels.ChatViewModel
+import com.example.theflower.ui.screens.chat.ChatScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// AppNavigation.kt  –  Entry point & routing only
+// AppNavigation.kt  –  Entry point & routing
 //
 // Route map:
 //   !isLoggedIn          → AuthNavScreens.kt   :: AuthFlow
@@ -29,7 +42,7 @@ import com.example.theflower.ui.viewmodels.AppViewModel
 //   "orders"             → OrdersNavScreen.kt   :: OrdersApiScreen
 //   "category_detail"    → CategoryNavScreens.kt :: CategoryProductsScreen
 //   "admin_dashboard"    → AdminNavScreens.kt   :: AdminDashboardScreen
-//   else (tabs)          → MainAppLayout (below) dispatches by NavTab
+//   else (tabs)          → MainAppLayout dispatches by NavTab
 //     NavTab.HOME        → ProductNavScreens.kt :: ProductListApiScreen
 //     NavTab.CATEGORY    → CategoryNavScreens.kt :: CategoryListScreen
 //     NavTab.CART        → CartNavScreen.kt     :: CartApiScreen
@@ -42,16 +55,8 @@ fun AppNavigation(viewModel: AppViewModel) {
     val snackBarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    val shouldHideUnauthorizedMessage =
-        uiState.errorMessage?.contains("Unauthorized", ignoreCase = true) == true
     val visibleErrorMessage = uiState.errorMessage?.takeUnless {
         it.contains("Unauthorized", ignoreCase = true)
-    }
-
-    LaunchedEffect(uiState.errorMessage) {
-        if (!uiState.errorMessage.isNullOrBlank() && !shouldHideUnauthorizedMessage) {
-            snackBarHostState.showSnackbar(uiState.errorMessage!!)
-        }
     }
 
     // ── Not logged in ──────────────────────────────────────────────────────────
@@ -99,24 +104,36 @@ fun AppNavigation(viewModel: AppViewModel) {
             onPayPendingOrder = viewModel::createPaymentForPendingOrder
         )
 
-        "admin_dashboard" -> AdminDashboardScreen(
-            users = uiState.adminUsers,
-            products = uiState.products,
-            orders = uiState.orders,
-            errorMessage = uiState.errorMessage,
-            onBack = viewModel::navigateBack,
-            onRefreshUsers = viewModel::loadAdminUsers,
-            onRefreshProducts = viewModel::loadProducts,
-            onRefreshOrders = viewModel::loadOrders,
-            onCreateUser = viewModel::createAdminUser,
-            onUpdateUser = viewModel::updateAdminUser,
-            onDeleteUser = viewModel::deleteAdminUser,
-            onCreateProduct = viewModel::createAdminProduct,
-            onUpdateProduct = viewModel::updateAdminProduct,
-            onDeleteProduct = viewModel::deleteAdminProduct
-        )
+        "admin_dashboard" -> {
+            val adminChatVm: AdminChatViewModel = viewModel()
+            AdminDashboardScreen(
+                users = uiState.adminUsers,
+                products = uiState.products,
+                orders = uiState.orders,
+                errorMessage = uiState.errorMessage,
+                adminChatVm = adminChatVm,
+                onBack = viewModel::navigateBack,
+                onRefreshUsers = viewModel::loadAdminUsers,
+                onRefreshProducts = viewModel::loadProducts,
+                onRefreshOrders = viewModel::loadOrders,
+                onCreateUser = viewModel::createAdminUser,
+                onUpdateUser = viewModel::updateAdminUser,
+                onDeleteUser = viewModel::deleteAdminUser,
+                onCreateProduct = viewModel::createAdminProduct,
+                onUpdateProduct = viewModel::updateAdminProduct,
+                onDeleteProduct = viewModel::deleteAdminProduct
+            )
+        }
+        
+        "chat" -> {
+            val chatVm: ChatViewModel = viewModel()
+            ChatScreen(
+                viewModel = chatVm,
+                onBack = viewModel::navigateBack
+            )
+        }
 
-        // Default: main tab layout
+        // Default: drawer layout
         else -> MainAppLayout(
             currentTab = uiState.currentTab,
             products = uiState.products,
@@ -143,6 +160,7 @@ fun AppNavigation(viewModel: AppViewModel) {
             onCreateOrder = viewModel::createOrder,
             onPayPendingOrder = viewModel::createPaymentForPendingOrder,
             onViewOrders = viewModel::navigateToOrders,
+            onChatClick = viewModel::navigateToChat,
             onOpenAdminDashboard = viewModel::navigateToAdminDashboard,
             onOpenCustomerProductActivity = {
                 context.startActivity(Intent(context, ProductCatalogActivity::class.java))
@@ -158,7 +176,7 @@ fun AppNavigation(viewModel: AppViewModel) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MainAppLayout  –  Bottom-tab scaffold + tab dispatch
+// MainAppLayout  –  Drawer scaffold + tab dispatch
 // ═══════════════════════════════════════════════════════════════════════════════
 
 @Composable
@@ -188,6 +206,7 @@ private fun MainAppLayout(
     onCreateOrder: () -> Unit,
     onPayPendingOrder: () -> Unit,
     onViewOrders: () -> Unit,
+    onChatClick: () -> Unit,
     onOpenAdminDashboard: () -> Unit,
     onOpenCustomerProductActivity: () -> Unit,
     onRefreshProducts: () -> Unit,
@@ -197,80 +216,147 @@ private fun MainAppLayout(
     onLogout: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    val filteredProducts = if (searchQuery.isBlank()) {
-        products
-    } else {
-        products.filter {
-            it.name.contains(searchQuery, ignoreCase = true) ||
-                it.categoryName.contains(searchQuery, ignoreCase = true)
-        }
-    }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    Scaffold(
-        containerColor = PaperWhite,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            Column {
-                if (pendingOrder != null) {
-                    PendingOrderBar(order = pendingOrder, onPay = onPayPendingOrder)
-                }
-                BottomNavBar(
-                    currentTab = currentTab,
-                    cartItemCount = cart?.totalItems ?: 0,
-                    onTabClick = onTabClick
+    // ── Notification state ─────────────────────────────────────────────────────
+    var showNotifications by remember { mutableStateOf(false) }
+    // Demo notifications built from orders — in production replace with real push data
+    val notifications = remember(pendingOrder) {
+        buildList {
+            if (pendingOrder != null) {
+                add(
+                    AppNotification(
+                        id = pendingOrder.id,
+                        title = "Đơn hàng chờ thanh toán",
+                        body = "Đơn #${pendingOrder.id.take(8)} • ${pendingOrder.totalPrice} VNĐ",
+                        icon = "⏳",
+                        isRead = false,
+                        timestamp = "Vừa xong"
+                    )
                 )
             }
         }
-    ) { padding ->
-        when (currentTab) {
+    }
 
-            NavTab.HOME -> ProductListApiScreen(
-                modifier = Modifier.padding(padding),
-                title = "Sản phẩm nổi bật",
-                searchQuery = searchQuery,
-                products = filteredProducts,
-                onSearchChange = onSearchChange,
-                onProductClick = onProductClick,
-                onAddToCart = onAddToCart,
-                onRefresh = onRefreshProducts
-            )
+    // ── Notification modal ─────────────────────────────────────────────────────
+    if (showNotifications) {
+        NotificationModal(
+            notifications = notifications,
+            onDismiss = { showNotifications = false },
+            onMarkAllRead = { showNotifications = false }
+        )
+    }
 
-            NavTab.CATEGORY -> CategoryListScreen(
-                modifier = Modifier.padding(padding),
-                categories = categories,
-                products = products,
-                onCategoryClick = onCategoryClick
-            )
+    val filteredProducts = if (searchQuery.isBlank()) products else products.filter {
+        it.name.contains(searchQuery, ignoreCase = true) ||
+            it.categoryName.contains(searchQuery, ignoreCase = true)
+    }
 
-            NavTab.CART -> CartApiScreen(
-                modifier = Modifier.padding(padding),
-                cart = cart,
-                checkoutAddress = checkoutAddress,
-                onCheckoutAddressChange = onCheckoutAddressChange,
-                onCreateOrder = onCreateOrder,
-                onRemoveItem = onRemoveCartItem,
-                onUpdateItemQuantity = onUpdateCartItem,
-                onClearCart = onClearCart,
-                onRefresh = onRefreshCart
-            )
+    val topBarTitle = when (currentTab) {
+        NavTab.HOME -> "🌿 The Flower"
+        NavTab.CATEGORY -> "Danh mục"
+        NavTab.CART -> "Giỏ hàng"
+        NavTab.PROFILE -> "Tài khoản"
+    }
 
-            NavTab.PROFILE -> ProfileApiScreen(
-                modifier = Modifier.padding(padding),
-                errorMessage = errorMessage?.takeUnless {
-                    it.contains("Unauthorized", ignoreCase = true)
-                },
+    val showSearch = currentTab == NavTab.HOME
+    val cartCount = cart?.totalItems ?: 0
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawerContent(
                 userName = userName,
                 userEmail = userEmail,
-                userPhone = userPhone,
-                userAddress = userAddress,
                 userRole = userRole,
-                onOpenCustomerProductActivity = onOpenCustomerProductActivity,
+                currentTab = currentTab,
+                cartItemCount = cartCount,
+                categories = categories,
+                onTabClick = onTabClick,
+                onCategoryClick = { category -> onCategoryClick(category) },
                 onViewOrders = onViewOrders,
+                onChatClick = onChatClick,
                 onOpenAdminDashboard = onOpenAdminDashboard,
-                onUpdateProfile = onUpdateProfile,
-                onChangePassword = onChangePassword,
-                onLogout = onLogout
+                onLogout = onLogout,
+                closeDrawer = { scope.launch { drawerState.close() } }
             )
+        }
+    ) {
+        Scaffold(
+            containerColor = PaperWhite,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                AppTopBar(
+                    title = topBarTitle,
+                    cartItemCount = cartCount,
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    onCartClick = if (currentTab != NavTab.CART) {
+                        { onTabClick(NavTab.CART) }
+                    } else null,
+                    showSearch = showSearch,
+                    searchQuery = searchQuery,
+                    onSearchChange = onSearchChange,
+                    notifications = notifications,
+                    onNotificationClick = { showNotifications = true }
+                )
+            },
+            bottomBar = {
+                if (pendingOrder != null) {
+                    PendingOrderBar(order = pendingOrder, onPay = onPayPendingOrder)
+                }
+            }
+        ) { padding ->
+            when (currentTab) {
+
+                NavTab.HOME -> ProductListApiScreen(
+                    modifier = Modifier.padding(padding),
+                    title = "",  // title shown in TopBar
+                    searchQuery = searchQuery,
+                    products = filteredProducts,
+                    onSearchChange = onSearchChange,
+                    onProductClick = onProductClick,
+                    onAddToCart = onAddToCart,
+                    onRefresh = onRefreshProducts
+                )
+
+                NavTab.CATEGORY -> CategoryListScreen(
+                    modifier = Modifier.padding(padding),
+                    categories = categories,
+                    products = products,
+                    onCategoryClick = onCategoryClick
+                )
+
+                NavTab.CART -> CartApiScreen(
+                    modifier = Modifier.padding(padding),
+                    cart = cart,
+                    checkoutAddress = checkoutAddress,
+                    onCheckoutAddressChange = onCheckoutAddressChange,
+                    onCreateOrder = onCreateOrder,
+                    onRemoveItem = onRemoveCartItem,
+                    onUpdateItemQuantity = onUpdateCartItem,
+                    onClearCart = onClearCart,
+                    onRefresh = onRefreshCart
+                )
+
+                NavTab.PROFILE -> ProfileApiScreen(
+                    modifier = Modifier.padding(padding),
+                    errorMessage = errorMessage?.takeUnless {
+                        it.contains("Unauthorized", ignoreCase = true)
+                    },
+                    userName = userName,
+                    userEmail = userEmail,
+                    userPhone = userPhone,
+                    userAddress = userAddress,
+                    userRole = userRole,
+                    onOpenCustomerProductActivity = onOpenCustomerProductActivity,
+                    onViewOrders = onViewOrders,
+                    onOpenAdminDashboard = onOpenAdminDashboard,
+                    onUpdateProfile = onUpdateProfile,
+                    onChangePassword = onChangePassword,
+                    onLogout = onLogout
+                )
+            }
         }
     }
 }

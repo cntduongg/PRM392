@@ -88,9 +88,24 @@ interface INotificationRepository {
  * Chat Repository Interface
  */
 interface IChatRepository {
-    suspend fun getChatConversations(): Result<List<ChatMessageDto>>
-    suspend fun getConversationMessages(conversationId: String): Result<List<ChatMessageDto>>
-    suspend fun sendChatMessage(request: SendChatMessageRequest): Result<ChatMessageDto>
+    val messages: kotlinx.coroutines.flow.StateFlow<List<ChatMessageDto>>
+    val connectionStatus: kotlinx.coroutines.flow.StateFlow<ChatConnectionStatus>
+
+    suspend fun connect(accessToken: String)
+    suspend fun disconnect()
+    suspend fun sendMessage(text: String)
+    suspend fun sendAdminReply(targetUserId: String, text: String)
+    suspend fun loadHistory(page: Int = 1, pageSize: Int = 20): List<ChatMessageDto>
+    suspend fun loadMessagesForUser(userId: String, page: Int = 1, pageSize: Int = 20): List<ChatMessageDto>
+    suspend fun getConversations(): List<ConversationSummaryDto>
+    fun setActiveUserId(userId: String?)
+}
+
+enum class ChatConnectionStatus {
+    DISCONNECTED,
+    CONNECTING,
+    CONNECTED,
+    ERROR
 }
 
 /**
