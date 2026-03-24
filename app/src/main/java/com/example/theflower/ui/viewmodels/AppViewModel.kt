@@ -99,6 +99,18 @@ class AppViewModel(
         _uiState.update { it.copy(currentScreen = screenName) }
     }
 
+    fun onPaymentResult(success: Boolean, orderId: String) {
+        _uiState.update {
+            it.copy(
+                currentScreen = "payment_result",
+                lastPaymentResult = success,
+                lastPaymentOrderId = orderId
+            )
+        }
+        loadOrders()
+        loadCart()
+    }
+
     fun navigateToProductDetail(product: Product) {
         _uiState.update {
             it.copy(
@@ -612,7 +624,7 @@ class AppViewModel(
         viewModelScope.launch {
             setLoading(true)
             val request = CreateOrderRequest(
-                paymentMethod = "COD",
+                paymentMethod = "VnPay",
                 billingAddress = address
             )
             orderRepository.createOrder(request)
@@ -625,6 +637,9 @@ class AppViewModel(
                             checkoutAddress = "",
                             pendingOrder = order
                         )
+                    }
+                    order.paymentUrl?.let { url ->
+                        _navigationEvent.value = NavigationEvent.OpenUrl(url)
                     }
                     clearError()
                 }
@@ -648,7 +663,7 @@ class AppViewModel(
                 CreatePaymentRequest(
                     orderId = order.id,
                     amount = order.totalPrice.roundToInt(),
-                    paymentMethod = order.paymentMethod.ifBlank { "COD" }
+                    paymentMethod = order.paymentMethod.ifBlank { "VnPay" }
                 )
             )
                 .onSuccess {

@@ -1,5 +1,6 @@
 package com.example.theflower
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -41,6 +42,8 @@ class MainActivity : ComponentActivity() {
         // Initialize DI container with application context
         DIContainer.init(applicationContext, isDevelopment = true)
         
+        handleIntent(intent)
+        
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
@@ -74,5 +77,25 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // Clean up if needed
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val action = intent?.action
+        val data = intent?.data
+        
+        if (Intent.ACTION_VIEW == action && data != null) {
+            if (data.scheme == "theflower" && data.host == "payment_result") {
+                // handle the deep link for payment success
+                val success = data.getQueryParameter("success")?.toBoolean() ?: false
+                val orderId = data.getQueryParameter("orderId") ?: ""
+                
+                appViewModel.onPaymentResult(success, orderId)
+            }
+        }
     }
 }

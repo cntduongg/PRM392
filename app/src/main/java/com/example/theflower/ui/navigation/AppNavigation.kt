@@ -11,6 +11,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,8 @@ import com.example.theflower.ui.viewmodels.AdminChatViewModel
 import com.example.theflower.ui.viewmodels.AppViewModel
 import com.example.theflower.ui.viewmodels.ChatViewModel
 import com.example.theflower.ui.screens.chat.ChatScreen
+import com.example.theflower.ui.screens.payment.PaymentSuccessScreen
+import com.example.theflower.ui.screens.payment.PaymentCancelScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
@@ -54,6 +57,18 @@ fun AppNavigation(viewModel: AppViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+
+    val navigationEvent by viewModel.navigationEvent.collectAsState()
+
+    LaunchedEffect(navigationEvent) {
+        navigationEvent?.let { event ->
+            if (event is com.example.theflower.ui.viewmodels.NavigationEvent.OpenUrl) {
+                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(event.url))
+                context.startActivity(intent)
+            }
+            viewModel.captureNavigationEvent()
+        }
+    }
 
     val visibleErrorMessage = uiState.errorMessage?.takeUnless {
         it.contains("Unauthorized", ignoreCase = true)
@@ -131,6 +146,24 @@ fun AppNavigation(viewModel: AppViewModel) {
                 viewModel = chatVm,
                 onBack = viewModel::navigateBack
             )
+        }
+
+        "payment_result" -> {
+            val success = uiState.lastPaymentResult ?: false
+            val orderId = uiState.lastPaymentOrderId ?: ""
+            if (success) {
+                PaymentSuccessScreen(
+                    orderId = orderId,
+                    onBackHome = { viewModel.selectTab(NavTab.HOME) },
+                    onViewOrder = { viewModel.selectTab(NavTab.PROFILE) } // Ideally navigate to specific order detail
+                )
+            } else {
+                PaymentCancelScreen(
+                    orderId = orderId,
+                    onRetryPayment = { viewModel.selectTab(NavTab.CART) },
+                    onBackHome = { viewModel.selectTab(NavTab.HOME) }
+                )
+            }
         }
 
         // Default: drawer layout

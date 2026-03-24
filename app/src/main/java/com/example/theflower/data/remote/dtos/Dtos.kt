@@ -183,6 +183,8 @@ data class OrderDto(
     val createdAt: String = "",
     @SerializedName("paymentStatus")
     val paymentStatus: String = "",
+    @SerializedName("paymentUrl")
+    val paymentUrl: String? = null,
     val updatedAt: String = ""
 )
 

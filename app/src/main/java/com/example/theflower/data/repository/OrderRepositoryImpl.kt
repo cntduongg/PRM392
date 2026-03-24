@@ -76,6 +76,7 @@ class OrderRepositoryImpl(
                     recipientAddress = request.billingAddress,
                     status = response.data.orderStatus,
                     paymentMethod = response.data.paymentMethod,
+                    paymentUrl = response.data.paymentUrl,
                     createdAt = ""
                 )
                 Result.success(mappedOrder)

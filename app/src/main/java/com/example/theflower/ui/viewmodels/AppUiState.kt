@@ -34,7 +34,9 @@ data class AppUiState(
     val orders: List<OrderDto> = emptyList(),
     val pendingOrder: OrderDto? = null,
     val adminUsers: List<AdminUserDto> = emptyList(),
-    val checkoutAddress: String = ""
+    val checkoutAddress: String = "",
+    val lastPaymentResult: Boolean? = null,
+    val lastPaymentOrderId: String? = null
 )
 
 /**
@@ -49,4 +51,5 @@ sealed class NavigationEvent {
     object NavigateToPayment : NavigationEvent()
     object NavigateToChat : NavigationEvent()
     object NavigateBack : NavigationEvent()
+    data class OpenUrl(val url: String) : NavigationEvent()
 }
