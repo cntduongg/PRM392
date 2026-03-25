@@ -148,6 +148,10 @@ fun AppNavigation(viewModel: AppViewModel) {
                 }
             }
 
+            LaunchedEffect(Unit) {
+                viewModel.loadAdminDashboardStats()
+            }
+
             AdminDashboardScreen(
                 users = sortedUsers,
                 products = sortedProducts,
@@ -171,7 +175,9 @@ fun AppNavigation(viewModel: AppViewModel) {
                 onUpdateCategory = viewModel::updateAdminCategory,
                 onDeleteCategory = viewModel::deleteAdminCategory,
                 onCategorySort = viewModel::setAdminCategorySort,
-                onUserSort = viewModel::setAdminUserSort
+                onUserSort = viewModel::setAdminUserSort,
+                onUpdateOrderStatus = viewModel::updateAdminOrderStatus,
+                dashboardStats = uiState.adminDashboardStats
             )
         }
         

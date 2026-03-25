@@ -7,6 +7,7 @@ import com.example.theflower.data.remote.dtos.CategoryDto
 import com.example.theflower.data.remote.dtos.OrderDto
 import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.AdminUserDto
+import com.example.theflower.data.remote.dtos.DashboardStatsDto
 
 /**
  * Main Application UI State
@@ -34,6 +35,7 @@ data class AppUiState(
     val orders: List<OrderDto> = emptyList(),
     val pendingOrder: OrderDto? = null,
     val adminUsers: List<AdminUserDto> = emptyList(),
+    val adminDashboardStats: DashboardStatsDto? = null,
     val checkoutAddress: String = "",
     val lastPaymentResult: Boolean? = null,
     val lastPaymentOrderId: String? = null,

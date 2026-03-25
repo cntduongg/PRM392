@@ -2,13 +2,7 @@ package com.example.theflower.data.repository
 
 import com.example.theflower.data.exceptions.ApiException
 import com.example.theflower.data.remote.api.TheFlowerApiService
-import com.example.theflower.data.remote.dtos.AdminUserDto
-import com.example.theflower.data.remote.dtos.CategoryDto
-import com.example.theflower.data.remote.dtos.CategoryUpsertRequest
-import com.example.theflower.data.remote.dtos.CreateAdminUserRequest
-import com.example.theflower.data.remote.dtos.ProductUpsertRequest
-import com.example.theflower.data.remote.dtos.UpdateProductRequest
-import com.example.theflower.data.remote.dtos.UpdateAdminUserRequest
+import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.domain.repositories.IAdminRepository
 import retrofit2.HttpException
 
@@ -158,6 +152,51 @@ class AdminRepositoryImpl(
                 Result.success(Unit)
             } else {
                 Result.failure(ApiException.ValidationError(response.message))
+            }
+        } catch (e: HttpException) {
+            Result.failure(ApiException.handleException(e))
+        } catch (e: Exception) {
+            Result.failure(ApiException.NetworkError(errorCause = e))
+        }
+    }
+
+    override suspend fun updateOrderStatus(orderId: String, status: String): Result<Unit> {
+        return try {
+            val response = apiService.updateOrderStatusAdmin(orderId, UpdateOrderStatusRequest(status))
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
+        } catch (e: HttpException) {
+            Result.failure(ApiException.handleException(e))
+        } catch (e: Exception) {
+            Result.failure(ApiException.NetworkError(errorCause = e))
+        }
+    }
+
+    override suspend fun getOrders(): Result<List<com.example.theflower.data.remote.dtos.OrderDto>> {
+        return try {
+            val response = apiService.getOrdersAdmin()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ServerError(500, response.message))
+            }
+        } catch (e: HttpException) {
+            Result.failure(ApiException.handleException(e))
+        } catch (e: Exception) {
+            Result.failure(ApiException.NetworkError(errorCause = e))
+        }
+    }
+
+    override suspend fun getDashboardStats(): Result<com.example.theflower.data.remote.dtos.DashboardStatsDto> {
+        return try {
+            val response = apiService.getDashboardStatsAdmin()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ServerError(500, response.message))
             }
         } catch (e: HttpException) {
             Result.failure(ApiException.handleException(e))

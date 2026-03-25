@@ -135,4 +135,9 @@ interface IAdminRepository {
     suspend fun createCategory(request: CategoryUpsertRequest): Result<CategoryDto>
     suspend fun updateCategory(categoryId: String, request: CategoryUpsertRequest): Result<Unit>
     suspend fun deleteCategory(categoryId: String): Result<Unit>
+
+    suspend fun updateOrderStatus(orderId: String, status: String): Result<Unit>
+
+    suspend fun getOrders(): Result<List<OrderDto>>
+    suspend fun getDashboardStats(): Result<DashboardStatsDto>
 }

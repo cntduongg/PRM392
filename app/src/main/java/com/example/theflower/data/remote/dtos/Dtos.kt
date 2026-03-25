@@ -210,6 +210,11 @@ data class CreateOrderRequest(
     val cancelUrl: String? = null
 )
 
+data class UpdateOrderStatusRequest(
+    @SerializedName("status")
+    val status: String
+)
+
 data class CreateOrderResponseDto(
     @SerializedName("orderId")
     val orderId: String = "",
@@ -219,6 +224,20 @@ data class CreateOrderResponseDto(
     @SerializedName("totalAmount")
     val totalAmount: Double = 0.0,
     val paymentUrl: String? = null
+)
+
+data class DashboardStatsDto(
+    val totalSales: Double = 0.0,
+    val totalOrders: Int = 0,
+    val totalUsers: Int = 0,
+    val totalProducts: Int = 0,
+    val topProducts: List<TopProductDto> = emptyList(),
+    val recentOrders: List<OrderDto> = emptyList()
+)
+
+data class TopProductDto(
+    val name: String = "",
+    val quantitySold: Int = 0
 )
 
 /**

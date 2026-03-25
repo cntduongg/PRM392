@@ -9,6 +9,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +43,14 @@ fun ChatScreen(
     // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
+    // Auto-scroll to bottom when keyboard opens
+    val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
+    LaunchedEffect(imeBottom) {
+        if (imeBottom > 0 && messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
         }
     }
@@ -78,6 +93,12 @@ fun ChatScreen(
                     if (inputText.isNotBlank()) {
                         viewModel.sendMessage(inputText)
                         inputText = ""
+                    }
+                },
+                onFocus = {
+                    if (messages.isNotEmpty()) {
+                        // Use scroll to ensure visible when focused
+                        // scope.launch { listState.animateScrollToItem(messages.size-1) }
                     }
                 }
             )
@@ -224,7 +245,8 @@ private fun ChatBubble(message: ChatMessageDto) {
 private fun ChatInputBar(
     text: String,
     onTextChange: (String) -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onFocus: () -> Unit = {}
 ) {
     Surface(
         color = PaperWhite,
@@ -247,9 +269,17 @@ private fun ChatInputBar(
                 placeholder = { Text("Nhập tin nhắn...", color = PlaceholderGray) },
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(max = 120.dp),
+                    .heightIn(max = 120.dp)
+                    .onFocusChanged { if (it.isFocused) onFocus() },
                 shape = RoundedCornerShape(24.dp),
                 maxLines = 4,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Send
+                ),
+                keyboardActions = KeyboardActions(
+                    onSend = { onSend() }
+                ),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Sand.copy(alpha = 0.3f),
                     unfocusedContainerColor = Sand.copy(alpha = 0.3f),

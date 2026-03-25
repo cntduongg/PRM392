@@ -57,6 +57,8 @@ internal fun AuthFlow(
                         )
                     )
                 )
+                .imePadding()
+                .navigationBarsPadding()
         ) {
             Column(
                 modifier = Modifier

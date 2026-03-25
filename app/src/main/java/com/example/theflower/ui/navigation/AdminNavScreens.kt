@@ -55,10 +55,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.theflower.data.remote.dtos.AdminUserDto
-import com.example.theflower.data.remote.dtos.CategoryDto
-import com.example.theflower.data.remote.dtos.OrderDto
-import com.example.theflower.data.remote.dtos.ProductDto
+import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.domain.repositories.ChatConnectionStatus
 import com.example.theflower.ui.viewmodels.AdminChatViewModel
 import com.example.theflower.ui.theme.MossGreen
@@ -171,9 +168,7 @@ internal fun CategoryManagementSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 400.dp)
-                        .padding(bottom = 16.dp)
-                        .imePadding()
-                        .navigationBarsPadding(),
+                        .padding(bottom = 16.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Sand),
                     elevation = CardDefaults.cardElevation(2.dp)
@@ -325,7 +320,9 @@ internal fun AdminDashboardScreen(
     onUpdateCategory: (String, String) -> Unit,
     onDeleteCategory: (String) -> Unit,
     onCategorySort: (String) -> Unit,
-    onUserSort: (String) -> Unit
+    onUserSort: (String) -> Unit,
+    onUpdateOrderStatus: (String, String) -> Unit,
+    dashboardStats: com.example.theflower.data.remote.dtos.DashboardStatsDto? = null
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -352,6 +349,8 @@ internal fun AdminDashboardScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
+                .imePadding()
+                .navigationBarsPadding()
         ) {
             ScrollableTabRow(
                 selectedTabIndex = selectedTab,
@@ -367,7 +366,7 @@ internal fun AdminDashboardScreen(
                     }
                 }
             ) {
-                val tabs = listOf("Tổng quan", "Danh mục", "Sản phẩm", "Người dùng", "CSKH")
+                val tabs = listOf("Tổng quan", "Đơn hàng", "Thống kê", "Danh mục", "Sản phẩm", "Người dùng", "CSKH")
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
@@ -396,9 +395,22 @@ internal fun AdminDashboardScreen(
                         orders = orders,
                         onRefreshUsers = onRefreshUsers,
                         onRefreshProducts = onRefreshProducts,
-                        onRefreshOrders = onRefreshOrders
+                        onRefreshOrders = onRefreshOrders,
+                        onNavigateToTab = { selectedTab = it },
+                        dashboardStats = dashboardStats
                     )
-                    1 -> CategoryManagementSection(
+                    1 -> OrderManagementSection(
+                        orders = orders,
+                        onRefreshOrders = onRefreshOrders,
+                        onUpdateOrderStatus = onUpdateOrderStatus
+                    )
+                    2 -> AdminStatisticsSection(
+                        orders = orders,
+                        products = products,
+                        categories = categories,
+                        dashboardStats = dashboardStats
+                    )
+                    3 -> CategoryManagementSection(
                         categories = categories,
                         errorMessage = errorMessage,
                         onRefreshCategories = onRefreshCategories,
@@ -407,7 +419,7 @@ internal fun AdminDashboardScreen(
                         onDeleteCategory = onDeleteCategory,
                         onCategorySort = onCategorySort
                     )
-                    2 -> ProductManagementSection(
+                    4 -> ProductManagementSection(
                         products = products,
                         categories = categories,
                         errorMessage = errorMessage,
@@ -417,7 +429,7 @@ internal fun AdminDashboardScreen(
                         onDeleteProduct = onDeleteProduct,
                         onProductSort = onProductSort
                     )
-                    3 -> UserManagementSection(
+                    5 -> UserManagementSection(
                         users = users,
                         errorMessage = errorMessage,
                         onRefreshUsers = onRefreshUsers,
@@ -426,7 +438,7 @@ internal fun AdminDashboardScreen(
                         onDeleteUser = onDeleteUser,
                         onUserSort = onUserSort
                     )
-                    4 -> AdminChatSection(adminChatVm = adminChatVm)
+                    6 -> AdminChatSection(adminChatVm = adminChatVm)
                 }
             }
         }
@@ -443,13 +455,17 @@ internal fun AdminOverviewSection(
     orders: List<OrderDto>,
     onRefreshUsers: () -> Unit,
     onRefreshProducts: () -> Unit,
-    onRefreshOrders: () -> Unit
+    onRefreshOrders: () -> Unit,
+    onNavigateToTab: (Int) -> Unit,
+    dashboardStats: com.example.theflower.data.remote.dtos.DashboardStatsDto? = null
 ) {
     val adminCount = users.count { it.role.equals("Admin", ignoreCase = true) }
     val customerCount = users.count { it.role.equals("Customer", ignoreCase = true) }
     val lowStockCount = products.count { it.stock <= 5 }
-    val successOrders = orders.filter { !it.status.contains("cancel", ignoreCase = true) }
-    val totalRevenue = successOrders.sumOf { it.totalPrice }
+    val totalRevenue = dashboardStats?.totalSales ?: orders.filter { !it.status.contains("cancel", ignoreCase = true) }.sumOf { it.totalPrice }
+    val totalOrders = dashboardStats?.totalOrders ?: orders.size
+    val totalProducts = dashboardStats?.totalProducts ?: products.size
+    val totalUsers = dashboardStats?.totalUsers ?: users.size
     val monthlyRevenue = buildMonthlyRevenue(orders)
 
     LazyColumn(
@@ -479,14 +495,16 @@ internal fun AdminOverviewSection(
                     title = "Doanh thu",
                     value = formatCurrency(totalRevenue),
                     icon = "💰",
-                    color = MossGreen
+                    color = MossGreen,
+                    onClick = { onNavigateToTab(2) } // To Statistics
                 )
                 StatCard(
                     modifier = Modifier.weight(1f),
                     title = "Đơn hàng",
-                    value = "${successOrders.size}",
+                    value = "$totalOrders",
                     icon = "🧾",
-                    color = SoilBrown
+                    color = SoilBrown,
+                    onClick = { onNavigateToTab(1) } // To Orders
                 )
             }
         }
@@ -496,10 +514,11 @@ internal fun AdminOverviewSection(
                 StatCard(
                     modifier = Modifier.weight(1f),
                     title = "Người dùng",
-                    value = "${users.size}",
+                    value = "$totalUsers",
                     subtitle = "$adminCount AD, $customerCount KH",
                     icon = "👥",
-                    color = SandDark
+                    color = SandDark,
+                    onClick = { onNavigateToTab(5) } // To Users
                 )
                 StatCard(
                     modifier = Modifier.weight(1f),
@@ -507,7 +526,8 @@ internal fun AdminOverviewSection(
                     value = "$lowStockCount",
                     subtitle = "Sắp hết hàng",
                     icon = "⚠️",
-                    color = Color(0xFFE57373)
+                    color = Color(0xFFE57373),
+                    onClick = { onNavigateToTab(4) } // To Products
                 )
             }
         }
@@ -515,6 +535,62 @@ internal fun AdminOverviewSection(
         item {
             Spacer(modifier = Modifier.height(8.dp))
             MonthlyRevenueChart(monthlyRevenue = monthlyRevenue)
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Đơn hàng mới", style = MaterialTheme.typography.titleMedium, color = SoilBrown, fontWeight = FontWeight.Bold)
+                Text(
+                    "Xem tất cả", 
+                    style = MaterialTheme.typography.labelMedium, 
+                    color = MossGreen,
+                    modifier = Modifier.clickable { onNavigateToTab(1) }
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        val recentOrders = orders.reversed().take(5)
+        if (recentOrders.isEmpty()) {
+            item {
+                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text("Chưa có đơn hàng nào", color = SandDark)
+                }
+            }
+        } else {
+            items(recentOrders) { order ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = PaperWhite),
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onNavigateToTab(1) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Đơn #${order.id.takeLast(6)}", style = MaterialTheme.typography.titleSmall, color = SoilBrown)
+                            Text(order.recipientName, style = MaterialTheme.typography.bodySmall, color = SandDark)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(formatCurrency(order.totalPrice), style = MaterialTheme.typography.titleSmall, color = MossGreen, fontWeight = FontWeight.Bold)
+                            val statusColor = when {
+                                order.status.contains("pending", true) -> Color(0xFFF57C00)
+                                order.status.contains("success", true) || order.status.contains("completed", true) -> MossGreen
+                                else -> Color.Red
+                            }
+                            Text(order.status, style = MaterialTheme.typography.labelSmall, color = statusColor)
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -526,10 +602,11 @@ internal fun StatCard(
     value: String,
     subtitle: String? = null,
     icon: String,
-    color: Color
+    color: Color,
+    onClick: () -> Unit = {}
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = PaperWhite),
         elevation = CardDefaults.cardElevation(2.dp)
@@ -703,9 +780,7 @@ internal fun UserManagementSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 450.dp)
-                        .padding(bottom = 16.dp)
-                        .imePadding()
-                        .navigationBarsPadding(),
+                        .padding(bottom = 16.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Sand),
                     elevation = CardDefaults.cardElevation(2.dp)
@@ -965,9 +1040,7 @@ internal fun ProductManagementSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 450.dp)
-                        .padding(bottom = 16.dp)
-                        .imePadding()
-                        .navigationBarsPadding(),
+                        .padding(bottom = 16.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Sand),
                     elevation = CardDefaults.cardElevation(2.dp)
@@ -1477,9 +1550,7 @@ internal fun AdminChatSection(adminChatVm: AdminChatViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .imePadding()
-                    .navigationBarsPadding(),
+                    .padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
@@ -1525,4 +1596,293 @@ internal fun formatTime(isoString: String?): String {
     } catch (e: Exception) {
         ""
     }
+}
+
+// ─── OrderManagementSection ───────────────────────────────────────────────────
+
+@Composable
+internal fun OrderManagementSection(
+    orders: List<OrderDto>,
+    onRefreshOrders: () -> Unit,
+    onUpdateOrderStatus: (String, String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Quản lý đơn hàng (${orders.size})",
+                style = MaterialTheme.typography.titleMedium,
+                color = SoilBrown,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(
+                onClick = onRefreshOrders,
+                modifier = Modifier.size(36.dp).background(Sand, CircleShape)
+            ) {
+                Text("🔄", fontSize = 14.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (orders.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                EmptyState(message = "Không có đơn hàng nào")
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
+                items(orders.reversed()) { order ->
+                    OrderCard(order = order, onUpdateStatus = onUpdateOrderStatus)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun OrderCard(
+    order: OrderDto,
+    onUpdateStatus: (String, String) -> Unit
+) {
+    var showDetails by remember { mutableStateOf(false) }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = PaperWhite),
+        elevation = CardDefaults.cardElevation(2.dp),
+        modifier = Modifier.fillMaxWidth().clickable { showDetails = !showDetails }
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Đơn hàng #${order.id.takeLast(8)}", style = MaterialTheme.typography.titleSmall, color = SoilBrown, fontWeight = FontWeight.Bold)
+                    Text(order.createdAt, style = MaterialTheme.typography.labelSmall, color = SandDark)
+                }
+                val statusColor = when {
+                    order.status.contains("pending", true) -> Color(0xFFF57C00)
+                    order.status.contains("success", true) || order.status.contains("completed", true) -> MossGreen
+                    order.status.contains("shipping", true) -> Color(0xFF2196F3)
+                    else -> Color.Red
+                }
+                Box(
+                    modifier = Modifier.background(statusColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(order.status, style = MaterialTheme.typography.labelSmall, color = statusColor, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Khách hàng: ${order.recipientName}", style = MaterialTheme.typography.bodyMedium, color = SoilBrown)
+                Text(formatCurrency(order.totalPrice), style = MaterialTheme.typography.titleMedium, color = MossGreen, fontWeight = FontWeight.Bold)
+            }
+
+            if (showDetails) {
+                Spacer(modifier = Modifier.height(12.dp))
+                androidx.compose.material3.Divider(color = Sand.copy(alpha = 0.5f), thickness = 1.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text("Địa chỉ: ${order.recipientAddress}", style = MaterialTheme.typography.bodySmall, color = SandDark)
+                Text("SĐT: ${order.recipientPhone}", style = MaterialTheme.typography.bodySmall, color = SandDark)
+                
+                if (!order.message.isNullOrBlank()) {
+                    Text("Lời nhắn: ${order.message}", style = MaterialTheme.typography.bodySmall, color = SandDark)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Sản phẩm:", style = MaterialTheme.typography.labelMedium, color = SoilBrown, fontWeight = FontWeight.Bold)
+                order.items.forEach { item ->
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("${item.productName} x${item.quantity}", style = MaterialTheme.typography.bodySmall, color = SandDark)
+                        Text(formatCurrency(item.subTotal), style = MaterialTheme.typography.bodySmall, color = SoilBrown)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (order.status.contains("pending", true)) {
+                        Button(
+                            onClick = { onUpdateStatus(order.id, "Shipping") },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = MossGreen),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) { Text("Giao hàng", fontSize = 11.sp) }
+                    }
+                    if (order.status.contains("shipping", true)) {
+                        Button(
+                            onClick = { onUpdateStatus(order.id, "Completed") },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = MossGreen),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) { Text("Hoàn tất", fontSize = 11.sp) }
+                    }
+                    Button(
+                        onClick = { onUpdateStatus(order.id, "Cancelled") },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE57373)),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) { Text("Hủy đơn", fontSize = 11.sp) }
+                }
+            }
+        }
+    }
+}
+
+// ─── AdminStatisticsSection ───────────────────────────────────────────────────
+
+@Composable
+internal fun AdminStatisticsSection(
+    orders: List<OrderDto>,
+    products: List<ProductDto>,
+    categories: List<CategoryDto>,
+    dashboardStats: com.example.theflower.data.remote.dtos.DashboardStatsDto? = null
+) {
+    val topProducts = remember(orders, dashboardStats) {
+        dashboardStats?.topProducts?.map { item -> item.name to item.quantitySold } 
+            ?: calculateTopProducts(orders).take(5)
+    }
+    
+    val categoryRevenue = remember(orders, products, dashboardStats) {
+        calculateCategoryRevenue(orders, products)
+    }
+
+    val statusBreakdown = remember(orders) {
+        orders.groupBy { it.status }.mapValues { it.value.size }
+    }
+    
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = 24.dp)
+    ) {
+        item {
+            Text("Thống kê chi tiết", style = MaterialTheme.typography.titleMedium, color = SoilBrown, fontWeight = FontWeight.Bold)
+        }
+        
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = PaperWhite),
+                elevation = CardDefaults.cardElevation(2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Top 5 Sản phẩm bán chạy", style = MaterialTheme.typography.titleSmall, color = SoilBrown, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    val maxQty = topProducts.firstOrNull()?.second?.toFloat()?.coerceAtLeast(1f) ?: 1f
+                    topProducts.forEach { (name, qty) ->
+                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(name, style = MaterialTheme.typography.bodySmall, color = SoilBrown, maxLines = 1)
+                                Text("$qty sp", style = MaterialTheme.typography.labelSmall, color = MossGreen, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(qty / maxQty)
+                                    .height(8.dp)
+                                    .background(MossGreen, RoundedCornerShape(4.dp))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = PaperWhite),
+                elevation = CardDefaults.cardElevation(2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Doanh thu theo danh mục", style = MaterialTheme.typography.titleSmall, color = SoilBrown, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    categoryRevenue.sortedByDescending { it.second }.forEach { (name, revenue) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(name, style = MaterialTheme.typography.bodySmall, color = SoilBrown)
+                            Text(formatCurrency(revenue), style = MaterialTheme.typography.bodySmall, color = MossGreen, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = PaperWhite),
+                elevation = CardDefaults.cardElevation(2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Trạng thái đơn hàng", style = MaterialTheme.typography.titleSmall, color = SoilBrown, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        statusBreakdown.forEach { (status, count) ->
+                            val color = when {
+                                status.contains("pending", true) -> Color(0xFFF57C00)
+                                status.contains("success", true) || status.contains("completed", true) -> MossGreen
+                                else -> Color.Red
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f).background(color.copy(alpha = 0.05f), RoundedCornerShape(8.dp)).padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("$count", style = MaterialTheme.typography.titleMedium, color = color, fontWeight = FontWeight.Bold)
+                                Text(status.take(8), style = MaterialTheme.typography.labelSmall, color = SandDark, maxLines = 1)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+internal fun calculateTopProducts(orders: List<OrderDto>): List<Pair<String, Int>> {
+    val successOrders = orders.filter { !it.status.contains("cancel", true) }
+    val productSales = mutableMapOf<String, Int>()
+    successOrders.forEach { order ->
+        order.items.forEach { item ->
+            productSales[item.productName] = (productSales[item.productName] ?: 0) + item.quantity
+        }
+    }
+    return productSales.toList().sortedByDescending { it.second }
+}
+
+internal fun calculateCategoryRevenue(orders: List<OrderDto>, products: List<ProductDto>): List<Pair<String, Double>> {
+    val successOrders = orders.filter { !it.status.contains("cancel", true) }
+    // Create product to category mapping
+    val productToCategory = products.associate { it.name to it.categoryName }
+    
+    val categoryRevenue = mutableMapOf<String, Double>()
+    successOrders.forEach { order ->
+        order.items.forEach { item ->
+            val catName = productToCategory[item.productName] ?: "Chưa phân loại"
+            categoryRevenue[catName] = (categoryRevenue[catName] ?: 0.0) + item.subTotal
+        }
+    }
+    return categoryRevenue.toList()
 }

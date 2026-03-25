@@ -182,5 +182,17 @@ interface TheFlowerApiService {
     suspend fun sendAdminReply(
         @Body request: AdminReplyRequest
     ): ApiResponse<ChatMessageDto>
+
+    @PUT("api/Orders/{id}/status")
+    suspend fun updateOrderStatusAdmin(
+        @Path("id") orderId: String,
+        @Body request: UpdateOrderStatusRequest
+    ): ApiResponse<Any>
+
+    @GET("api/Orders/admin")
+    suspend fun getOrdersAdmin(): ApiResponse<List<OrderDto>>
+
+    @GET("api/Dashboard/stats")
+    suspend fun getDashboardStatsAdmin(): ApiResponse<DashboardStatsDto>
 }
 

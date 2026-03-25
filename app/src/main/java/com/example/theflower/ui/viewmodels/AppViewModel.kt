@@ -692,12 +692,34 @@ class AppViewModel(
 
         viewModelScope.launch {
             setLoading(true)
-            orderRepository.getOrders()
-                .onSuccess { response -> 
-                    _uiState.update { it.copy(orders = response.items.orEmpty()) }
+            val result = if (_uiState.value.userRole == "Admin") {
+                adminRepository.getOrders()
+            } else {
+                orderRepository.getOrders().map { it.items ?: emptyList() }
+            }
+            
+            result.onSuccess { orders -> 
+                _uiState.update { it.copy(orders = orders) }
+                clearError()
+            }
+            .onFailure { setError(it.message ?: "Không thể tải đơn hàng") }
+            setLoading(false)
+        }
+    }
+
+    fun loadAdminDashboardStats() {
+        if (!_uiState.value.isLoggedIn || _uiState.value.userRole != "Admin") return
+
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.getDashboardStats()
+                .onSuccess { stats ->
+                    _uiState.update { it.copy(adminDashboardStats = stats) }
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "Không thể tải đơn hàng") }
+                .onFailure {
+                    setError(it.message ?: "Không thể tải thống kê dashboard")
+                }
             setLoading(false)
         }
     }
@@ -785,6 +807,21 @@ class AppViewModel(
                 }
                 .onFailure {
                     setError(it.message ?: "Tạo user thất bại")
+                }
+            setLoading(false)
+        }
+    }
+
+    fun updateAdminOrderStatus(orderId: String, status: String) {
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.updateOrderStatus(orderId, status)
+                .onSuccess {
+                    loadOrders()
+                    clearError()
+                }
+                .onFailure {
+                    setError(it.message ?: "Cập nhật trạng thái đơn hàng thất bại")
                 }
             setLoading(false)
         }
