@@ -104,6 +104,22 @@ interface TheFlowerApiService {
         @Path("id") productId: String
     ): ApiResponse<Any>
 
+    @POST("api/Categories")
+    suspend fun createCategoryAdmin(
+        @Body request: CategoryUpsertRequest
+    ): ApiResponse<CategoryDto>
+
+    @PUT("api/Categories/{id}")
+    suspend fun updateCategoryAdmin(
+        @Path("id") categoryId: String,
+        @Body request: CategoryUpsertRequest
+    ): ApiResponse<Any>
+
+    @DELETE("api/Categories/{id}")
+    suspend fun deleteCategoryAdmin(
+        @Path("id") categoryId: String
+    ): ApiResponse<Any>
+
     @GET("api/Users/profile")
     suspend fun getUserProfile(): ApiResponse<UserProfileDto>
 
@@ -153,5 +169,18 @@ interface TheFlowerApiService {
         @Query("page") page: Int = 1,
         @Query("pageSize") pageSize: Int = 30
     ): ApiResponse<List<ChatMessageDto>>
+
+    @DELETE("api/Chats/messages")
+    suspend fun deleteChatMessages(): ApiResponse<Any>
+
+    @DELETE("api/Chats/messages/{userId}")
+    suspend fun deleteUserChatMessages(
+        @Path("userId") userId: String
+    ): ApiResponse<Any>
+    
+    @POST("api/Chats/messages/admin")
+    suspend fun sendAdminReply(
+        @Body request: AdminReplyRequest
+    ): ApiResponse<ChatMessageDto>
 }
 

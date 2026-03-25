@@ -32,9 +32,9 @@ internal fun botanicalOutlinedTextFieldColors() = OutlinedTextFieldDefaults.colo
 )
 
 @Composable
-internal fun EmptyState(message: String) {
+internal fun EmptyState(message: String, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -47,12 +47,12 @@ internal fun EmptyState(message: String) {
 }
 
 @Composable
-internal fun ErrorNote(message: String) {
+internal fun ErrorNote(message: String, modifier: Modifier = Modifier) {
     Text(
         text = message,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     )
 }
 

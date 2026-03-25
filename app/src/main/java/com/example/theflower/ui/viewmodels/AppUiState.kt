@@ -36,7 +36,15 @@ data class AppUiState(
     val adminUsers: List<AdminUserDto> = emptyList(),
     val checkoutAddress: String = "",
     val lastPaymentResult: Boolean? = null,
-    val lastPaymentOrderId: String? = null
+    val lastPaymentOrderId: String? = null,
+    
+    // Admin Sorting State
+    val adminUserSortBy: String = "Name",
+    val adminUserSortOrder: String = "asc",
+    val adminProductSortBy: String = "Name",
+    val adminProductSortOrder: String = "asc",
+    val adminCategorySortBy: String = "Name",
+    val adminCategorySortOrder: String = "asc"
 )
 
 /**

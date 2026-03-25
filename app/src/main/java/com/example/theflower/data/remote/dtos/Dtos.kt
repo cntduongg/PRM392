@@ -431,3 +431,15 @@ data class UpdateProductRequest(
     @SerializedName("stockQuantity")
     val stockQuantity: Int? = 0
 )
+
+data class CategoryUpsertRequest(
+    @SerializedName("categoryName")
+    val name: String
+)
+
+data class AdminReplyRequest(
+    @SerializedName("targetUserId")
+    val targetUserId: String,
+    @SerializedName("message")
+    val message: String
+)

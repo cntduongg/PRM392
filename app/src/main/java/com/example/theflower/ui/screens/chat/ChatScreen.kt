@@ -43,11 +43,32 @@ fun ChatScreen(
     Scaffold(
         containerColor = PaperWhite,
         topBar = {
+            var showClearConfirm by remember { mutableStateOf(false) }
+            
             ChatTopBar(
                 status = status,
                 onBack = onBack,
-                onRefresh = viewModel::refreshHistory
+                onRefresh = viewModel::refreshHistory,
+                onClear = { showClearConfirm = true }
             )
+
+            if (showClearConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showClearConfirm = false },
+                    title = { Text("Xác nhận") },
+                    text = { Text("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện không?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.clearHistory()
+                            showClearConfirm = false
+                        }) { Text("Xóa", color = Color.Red) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showClearConfirm = false }) { Text("Hủy") }
+                    },
+                    containerColor = PaperWhite
+                )
+            }
         },
         bottomBar = {
             ChatInputBar(
@@ -92,7 +113,8 @@ fun ChatScreen(
 private fun ChatTopBar(
     status: ChatConnectionStatus,
     onBack: () -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onClear: () -> Unit
 ) {
     CenterAlignedTopAppBar(
         title = {
@@ -136,6 +158,9 @@ private fun ChatTopBar(
         actions = {
             IconButton(onClick = onRefresh) {
                 Text("🔄", fontSize = 18.sp)
+            }
+            IconButton(onClick = onClear) {
+                Text("🗑", fontSize = 18.sp, color = Color.Red.copy(alpha = 0.7f))
             }
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = PaperWhite)
@@ -206,6 +231,7 @@ private fun ChatInputBar(
         tonalElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
+            .imePadding()
             .navigationBarsPadding()
     ) {
         Row(
@@ -270,11 +296,18 @@ private fun EmptyChatState() {
     }
 }
 
-private fun formatTime(isoString: String): String {
+private fun formatTime(isoString: String?): String {
+    if (isoString.isNullOrBlank()) return ""
     return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val date = inputFormat.parse(isoString)
-        val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        // Strip milliseconds if present for simpler parsing
+        val cleanIso = if (isoString.contains(".")) isoString.substringBefore(".") else isoString
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("GMT+7")
+        }
+        val date = inputFormat.parse(cleanIso)
+        val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("GMT+7")
+        }
         date?.let { outputFormat.format(it) } ?: ""
     } catch (e: Exception) {
         ""

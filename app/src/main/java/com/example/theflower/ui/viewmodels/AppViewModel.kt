@@ -10,6 +10,7 @@ import com.example.theflower.data.remote.dtos.CreatePaymentRequest
 import com.example.theflower.data.remote.dtos.ChangeUserPasswordDto
 import com.example.theflower.data.remote.dtos.CartDto
 import com.example.theflower.data.remote.dtos.CategoryDto
+import com.example.theflower.data.remote.dtos.CategoryUpsertRequest
 import com.example.theflower.data.remote.dtos.LoginRequest
 import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.ProductUpsertRequest
@@ -104,7 +105,9 @@ class AppViewModel(
             it.copy(
                 currentScreen = "payment_result",
                 lastPaymentResult = success,
-                lastPaymentOrderId = orderId
+                lastPaymentOrderId = orderId,
+                cart = null,          // Clear cart state so it reloads or shows empty
+                pendingOrder = null    // Clear the "pending" banner info
             )
         }
         loadOrders()
@@ -239,7 +242,7 @@ class AppViewModel(
 
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
-            setError("Vui lÃ²ng nháº­p email vÃ  máº­t kháº©u.")
+            setError("Vui lòng nhập email và mật khẩu.")
             return
         }
 
@@ -284,8 +287,14 @@ class AppViewModel(
                         loadCart()
                     }
                 }
-                .onFailure {
-                    setError(it.message ?: "ÄÄng nháº­p tháº¥t báº¡i")
+                .onFailure { exception ->
+                    val userFriendlyMessage = when (exception) {
+                        is com.example.theflower.data.exceptions.ApiException.Unauthorized -> "Email hoặc mật khẩu không đúng"
+                        is com.example.theflower.data.exceptions.ApiException.ValidationError -> "Thông tin không hợp lệ"
+                        is com.example.theflower.data.exceptions.ApiException.NetworkError -> "Không thể kết nối máy chủ"
+                        else -> "Có lỗi xảy ra"
+                    }
+                    setError(userFriendlyMessage)
                 }
             setLoading(false)
         }
@@ -293,7 +302,7 @@ class AppViewModel(
 
     fun register(name: String, email: String, password: String) {
         if (name.isBlank() || email.isBlank() || password.length < 6) {
-            setError("ThÃ´ng tin ÄÄng kÃ½ chÆ°a há»£p lá» (máº­t kháº©u tá»i thiá»u 6 kÃ½ tá»±).")
+            setError("Thông tin đăng ký chưa hợp lệ (mật khẩu tối thiểu 6 ký tự).")
             return
         }
 
@@ -337,7 +346,7 @@ class AppViewModel(
                     loadCart()
                 }
                 .onFailure {
-                    setError(it.message ?: "ÄÄng kÃ½ tháº¥t báº¡i")
+                    setError(it.message ?: "Đăng ký thất bại")
                 }
             setLoading(false)
         }
@@ -375,9 +384,10 @@ class AppViewModel(
             productRepository.getProducts(pageNumber = 1, pageSize = 50)
                 .onSuccess { response ->
                     _uiState.update { it.copy(products = response.items.orEmpty()) }
+                    clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "KhÃ´ng thá» táº£i sáº£n pháº©m")
+                    setError(it.message ?: "Không thể tải sản phẩm")
                 }
             setLoading(false)
         }
@@ -388,9 +398,10 @@ class AppViewModel(
             categoryRepository.getCategories()
                 .onSuccess { categories ->
                     _uiState.update { it.copy(categories = categories) }
+                    clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "KhÃ´ng thá» táº£i danh má»¥c")
+                    setError(it.message ?: "Không thể tải danh mục")
                 }
         }
     }
@@ -422,7 +433,7 @@ class AppViewModel(
                 }
                 .onFailure {
                     if (!silent) {
-                        setError(it.message ?: "KhÃ´ng thá» táº£i há» sÆ¡ ngÆ°á»i dÃ¹ng")
+                        setError(it.message ?: "Không thể tải hồ sơ người dùng")
                     }
                 }
         }
@@ -430,12 +441,12 @@ class AppViewModel(
 
     fun updateProfile(fullName: String, phoneNumber: String, address: String) {
         if (!_uiState.value.isLoggedIn) {
-            setError("Báº¡n cáº§n ÄÄng nháº­p Äá» cáº­p nháº­t há» sÆ¡.")
+            setError("Bạn cần đăng nhập để cập nhật hồ sơ.")
             return
         }
 
         if (fullName.isBlank()) {
-            setError("Há» tÃªn khÃ´ng ÄÆ°á»£c Äá» trá»ng.")
+            setError("Họ tên không được để trống.")
             return
         }
 
@@ -470,7 +481,7 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Cáº­p nháº­t há» sÆ¡ tháº¥t báº¡i")
+                    setError(it.message ?: "Cập nhật hồ sơ thất bại")
                 }
             setLoading(false)
         }
@@ -478,22 +489,22 @@ class AppViewModel(
 
     fun changePassword(currentPassword: String, newPassword: String, confirmPassword: String) {
         if (!_uiState.value.isLoggedIn) {
-            setError("Báº¡n cáº§n ÄÄng nháº­p Äá» Äá»i máº­t kháº©u.")
+            setError("Bạn cần đăng nhập để đổi mật khẩu.")
             return
         }
 
         if (currentPassword.isBlank() || newPassword.isBlank() || confirmPassword.isBlank()) {
-            setError("Vui lÃ²ng nháº­p Äáº§y Äá»§ thÃ´ng tin Äá»i máº­t kháº©u.")
+            setError("Vui lòng nhập đầy đủ thông tin đổi mật khẩu.")
             return
         }
 
         if (newPassword.length < 6) {
-            setError("Máº­t kháº©u má»i pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±.")
+            setError("Mật khẩu mới phải có ít nhất 6 ký tự.")
             return
         }
 
         if (newPassword != confirmPassword) {
-            setError("XÃ¡c nháº­n máº­t kháº©u khÃ´ng khá»p.")
+            setError("Xác nhận mật khẩu không khớp.")
             return
         }
 
@@ -510,7 +521,7 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Äá»i máº­t kháº©u tháº¥t báº¡i")
+                    setError(it.message ?: "Đổi mật khẩu thất bại")
                 }
             setLoading(false)
         }
@@ -530,7 +541,7 @@ class AppViewModel(
                     loadCart()
                 }
                 .onFailure {
-                    setError(it.message ?: "Khong the them san pham vao gio hang")
+                    setError(it.message ?: "Không thể thêm sản phẩm vào giỏ hàng")
                 }
             setLoading(false)
         }
@@ -550,7 +561,7 @@ class AppViewModel(
                     ) {
                         _uiState.update { state -> state.copy(cart = CartDto()) }
                     } else {
-                        setError(it.message ?: "Khong the tai gio hang")
+                        setError(it.message ?: "Không thể tải giỏ hàng")
                     }
                 }
         }
@@ -561,7 +572,7 @@ class AppViewModel(
             setLoading(true)
             cartRepository.removeFromCart(itemId)
                 .onSuccess { cart -> _uiState.update { it.copy(cart = cart) } }
-                .onFailure { setError(it.message ?: "Khong the xoa san pham") }
+                .onFailure { setError(it.message ?: "Không thể xóa sản phẩm") }
             setLoading(false)
         }
     }
@@ -573,7 +584,7 @@ class AppViewModel(
                     _uiState.update { it.copy(selectedProductDto = product) }
                 }
                 .onFailure {
-                    setError(it.message ?: "Khong the tai chi tiet san pham")
+                    setError(it.message ?: "Không thể tải chi tiết sản phẩm")
                 }
         }
     }
@@ -584,7 +595,7 @@ class AppViewModel(
             setLoading(true)
             cartRepository.updateCartItem(itemId, safeQuantity)
                 .onSuccess { cart -> _uiState.update { it.copy(cart = cart) } }
-                .onFailure { setError(it.message ?: "Khong the cap nhat so luong san pham") }
+                .onFailure { setError(it.message ?: "Không thể cập nhật số lượng sản phẩm") }
             setLoading(false)
         }
     }
@@ -603,7 +614,7 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Khong the xoa gio hang")
+                    setError(it.message ?: "Không thể xóa giỏ hàng")
                 }
             setLoading(false)
         }
@@ -612,7 +623,7 @@ class AppViewModel(
     fun createOrder() {
         val address = _uiState.value.checkoutAddress
         if (address.isBlank()) {
-            setError("Vui long nhap dia chi giao hang.")
+            setError("Vui lòng nhập địa chỉ giao hàng.")
             return
         }
 
@@ -644,7 +655,7 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Khong the tao don hang")
+                    setError(it.message ?: "Không thể tạo đơn hàng")
                 }
             setLoading(false)
         }
@@ -653,7 +664,7 @@ class AppViewModel(
     fun createPaymentForPendingOrder() {
         val order = _uiState.value.pendingOrder
         if (!_uiState.value.isLoggedIn || order == null) {
-            setError("Chua co don hang de thanh toan.")
+            setError("Chưa có đơn hàng để thanh toán.")
             return
         }
 
@@ -670,7 +681,7 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Khong the tao thanh toan cho don hang ${order.id}")
+                    setError(it.message ?: "Không thể tạo thanh toán cho đơn hàng ${order.id}")
                 }
             setLoading(false)
         }
@@ -682,8 +693,11 @@ class AppViewModel(
         viewModelScope.launch {
             setLoading(true)
             orderRepository.getOrders()
-                .onSuccess { response -> _uiState.update { it.copy(orders = response.items.orEmpty()) } }
-                .onFailure { setError(it.message ?: "Khong the tai don hang") }
+                .onSuccess { response -> 
+                    _uiState.update { it.copy(orders = response.items.orEmpty()) }
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Không thể tải đơn hàng") }
             setLoading(false)
         }
     }
@@ -730,8 +744,11 @@ class AppViewModel(
         viewModelScope.launch {
             setLoading(true)
             adminRepository.getUsers()
-                .onSuccess { users -> _uiState.update { it.copy(adminUsers = users) } }
-                .onFailure { setError(it.message ?: "KhÃ´ng thá» táº£i danh sÃ¡ch ngÆ°á»i dÃ¹ng") }
+                .onSuccess { users -> 
+                    _uiState.update { it.copy(adminUsers = users) }
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Không thể tải danh sách người dùng") }
             setLoading(false)
         }
     }
@@ -747,7 +764,7 @@ class AppViewModel(
         if (!_uiState.value.isLoggedIn) return
 
         if (username.isBlank() || email.isBlank() || password.length < 6) {
-            setError("ThÃ´ng tin user khÃ´ng há»£p lá».")
+            setError("Thông tin user không hợp lệ.")
             return
         }
 
@@ -767,7 +784,7 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Táº¡o user tháº¥t báº¡i")
+                    setError(it.message ?: "Tạo user thất bại")
                 }
             setLoading(false)
         }
@@ -785,7 +802,7 @@ class AppViewModel(
         if (!_uiState.value.isLoggedIn) return
 
         if (username.isBlank() || email.isBlank()) {
-            setError("Thiáº¿u thÃ´ng tin Äá» cáº­p nháº­t user.")
+            setError("Thiếu thông tin để cập nhật user.")
             return
         }
 
@@ -805,7 +822,7 @@ class AppViewModel(
                     clearError()
                 }
                 .onFailure {
-                    setError(it.message ?: "Cáº­p nháº­t user tháº¥t báº¡i")
+                    setError(it.message ?: "Cập nhật user thất bại")
                 }
             setLoading(false)
         }
@@ -821,7 +838,7 @@ class AppViewModel(
                     loadAdminUsers()
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "XÃ³a user tháº¥t báº¡i") }
+                .onFailure { setError(it.message ?: "Xóa user thất bại") }
             setLoading(false)
         }
     }
@@ -840,7 +857,7 @@ class AppViewModel(
 
         val parsedPrice = price.toDoubleOrNull()
         if (productName.isBlank() || parsedPrice == null) {
-            setError("ThÃ´ng tin sáº£n pháº©m khÃ´ng há»£p lá»")
+            setError("Thông tin sản phẩm không hợp lệ")
             return
         }
 
@@ -861,7 +878,7 @@ class AppViewModel(
                     loadProducts()
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "Táº¡o sáº£n pháº©m tháº¥t báº¡i") }
+                .onFailure { setError(it.message ?: "Tạo sản phẩm thất bại") }
             setLoading(false)
         }
     }
@@ -881,7 +898,7 @@ class AppViewModel(
 
         val parsedPrice = price.toDoubleOrNull()
         if (productName.isBlank() || parsedPrice == null) {
-            setError("ThÃ´ng tin sáº£n pháº©m khÃ´ng há»£p lá»")
+            setError("Thông tin sản phẩm không hợp lệ")
             return
         }
 
@@ -903,7 +920,7 @@ class AppViewModel(
                     loadProducts()
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "Cáº­p nháº­t sáº£n pháº©m tháº¥t báº¡i") }
+                .onFailure { setError(it.message ?: "Cập nhật sản phẩm thất bại") }
             setLoading(false)
         }
     }
@@ -918,8 +935,88 @@ class AppViewModel(
                     loadProducts()
                     clearError()
                 }
-                .onFailure { setError(it.message ?: "XÃ³a sáº£n pháº©m tháº¥t báº¡i") }
+                .onFailure { setError(it.message ?: "Xóa sản phẩm thất bại") }
             setLoading(false)
+        }
+    }
+
+    // ─── ADMIN CATEGORY CRUD ──────────────────────────────────────────────
+
+    fun createAdminCategory(name: String) {
+        if (!_uiState.value.isLoggedIn) return
+        if (name.isBlank()) {
+            setError("Tên danh mục không được để trống")
+            return
+        }
+
+        viewModelScope.launch {
+            setLoading(true)
+            val request = CategoryUpsertRequest(name)
+            adminRepository.createCategory(request)
+                .onSuccess {
+                    loadCategories()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Tạo danh mục thất bại") }
+            setLoading(false)
+        }
+    }
+
+    fun updateAdminCategory(categoryId: String, name: String) {
+        if (!_uiState.value.isLoggedIn) return
+        if (name.isBlank()) {
+            setError("Tên danh mục không được để trống")
+            return
+        }
+
+        viewModelScope.launch {
+            setLoading(true)
+            val request = CategoryUpsertRequest(name)
+            adminRepository.updateCategory(categoryId, request)
+                .onSuccess {
+                    loadCategories()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Cập nhật danh mục thất bại") }
+            setLoading(false)
+        }
+    }
+
+    fun deleteAdminCategory(categoryId: String) {
+        if (!_uiState.value.isLoggedIn) return
+
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.deleteCategory(categoryId)
+                .onSuccess {
+                    loadCategories()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Xóa danh mục thất bại") }
+            setLoading(false)
+        }
+    }
+
+    // ─── ADMIN SORTING ──────────────────────────────────────────────────
+
+    fun setAdminUserSort(sortBy: String) {
+        _uiState.update {
+            val newOrder = if (it.adminUserSortBy == sortBy && it.adminUserSortOrder == "asc") "desc" else "asc"
+            it.copy(adminUserSortBy = sortBy, adminUserSortOrder = newOrder)
+        }
+    }
+
+    fun setAdminProductSort(sortBy: String) {
+        _uiState.update {
+            val newOrder = if (it.adminProductSortBy == sortBy && it.adminProductSortOrder == "asc") "desc" else "asc"
+            it.copy(adminProductSortBy = sortBy, adminProductSortOrder = newOrder)
+        }
+    }
+
+    fun setAdminCategorySort(sortBy: String) {
+        _uiState.update {
+            val newOrder = if (it.adminCategorySortBy == sortBy && it.adminCategorySortOrder == "asc") "desc" else "asc"
+            it.copy(adminCategorySortBy = sortBy, adminCategorySortOrder = newOrder)
         }
     }
 }

@@ -121,22 +121,57 @@ fun AppNavigation(viewModel: AppViewModel) {
 
         "admin_dashboard" -> {
             val adminChatVm: AdminChatViewModel = viewModel()
+            
+            // Client-side sorting for Admin
+            val sortedUsers = uiState.adminUsers.let { users ->
+                when (uiState.adminUserSortBy) {
+                    "Name" -> if (uiState.adminUserSortOrder == "asc") users.sortedBy { it.username } else users.sortedByDescending { it.username }
+                    "Email" -> if (uiState.adminUserSortOrder == "asc") users.sortedBy { it.email } else users.sortedByDescending { it.email }
+                    "Role" -> if (uiState.adminUserSortOrder == "asc") users.sortedBy { it.role } else users.sortedByDescending { it.role }
+                    else -> users
+                }
+            }
+            
+            val sortedProducts = uiState.products.let { prods ->
+                when (uiState.adminProductSortBy) {
+                    "Name" -> if (uiState.adminProductSortOrder == "asc") prods.sortedBy { it.name } else prods.sortedByDescending { it.name }
+                    "Price" -> if (uiState.adminProductSortOrder == "asc") prods.sortedBy { it.price } else prods.sortedByDescending { it.price }
+                    "Stock" -> if (uiState.adminProductSortOrder == "asc") prods.sortedBy { it.stock } else prods.sortedByDescending { it.stock }
+                    else -> prods
+                }
+            }
+            
+            val sortedCategories = uiState.categories.let { cats ->
+                when (uiState.adminCategorySortBy) {
+                    "Name" -> if (uiState.adminCategorySortOrder == "asc") cats.sortedBy { it.name } else cats.sortedByDescending { it.name }
+                    else -> cats
+                }
+            }
+
             AdminDashboardScreen(
-                users = uiState.adminUsers,
-                products = uiState.products,
+                users = sortedUsers,
+                products = sortedProducts,
                 orders = uiState.orders,
+                categories = sortedCategories,
                 errorMessage = uiState.errorMessage,
                 adminChatVm = adminChatVm,
                 onBack = viewModel::navigateBack,
                 onRefreshUsers = viewModel::loadAdminUsers,
                 onRefreshProducts = viewModel::loadProducts,
                 onRefreshOrders = viewModel::loadOrders,
+                onRefreshCategories = viewModel::loadCategories,
                 onCreateUser = viewModel::createAdminUser,
                 onUpdateUser = viewModel::updateAdminUser,
                 onDeleteUser = viewModel::deleteAdminUser,
                 onCreateProduct = viewModel::createAdminProduct,
                 onUpdateProduct = viewModel::updateAdminProduct,
-                onDeleteProduct = viewModel::deleteAdminProduct
+                onDeleteProduct = viewModel::deleteAdminProduct,
+                onProductSort = viewModel::setAdminProductSort,
+                onCreateCategory = viewModel::createAdminCategory,
+                onUpdateCategory = viewModel::updateAdminCategory,
+                onDeleteCategory = viewModel::deleteAdminCategory,
+                onCategorySort = viewModel::setAdminCategorySort,
+                onUserSort = viewModel::setAdminUserSort
             )
         }
         
@@ -155,7 +190,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                 PaymentSuccessScreen(
                     orderId = orderId,
                     onBackHome = { viewModel.selectTab(NavTab.HOME) },
-                    onViewOrder = { viewModel.selectTab(NavTab.PROFILE) } // Ideally navigate to specific order detail
+                    onViewOrder = { viewModel.navigateToOrders() }
                 )
             } else {
                 PaymentCancelScreen(

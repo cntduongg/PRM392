@@ -99,6 +99,8 @@ interface IChatRepository {
     suspend fun loadMessagesForUser(userId: String, page: Int = 1, pageSize: Int = 20): List<ChatMessageDto>
     suspend fun getConversations(): List<ConversationSummaryDto>
     fun setActiveUserId(userId: String?)
+    suspend fun clearChat(): Result<Unit>
+    suspend fun clearUserChat(userId: String): Result<Unit>
 }
 
 enum class ChatConnectionStatus {
@@ -129,4 +131,8 @@ interface IAdminRepository {
     suspend fun createProduct(request: ProductUpsertRequest): Result<Unit>
     suspend fun updateProduct(productId: String, request: UpdateProductRequest): Result<Unit>
     suspend fun deleteProduct(productId: String): Result<Unit>
+
+    suspend fun createCategory(request: CategoryUpsertRequest): Result<CategoryDto>
+    suspend fun updateCategory(categoryId: String, request: CategoryUpsertRequest): Result<Unit>
+    suspend fun deleteCategory(categoryId: String): Result<Unit>
 }

@@ -33,11 +33,16 @@ class AdminChatViewModel(
     val connectionStatus: StateFlow<ChatConnectionStatus> = chatRepository.connectionStatus
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ChatConnectionStatus.DISCONNECTED)
 
+    private var isInitialized = false
+
     init {
         initChat()
     }
 
     private fun initChat() {
+        if (isInitialized) return
+        isInitialized = true
+        
         viewModelScope.launch {
             val token = tokenManager.getAccessToken().orEmpty()
             if (token.isNotBlank()) {
@@ -75,6 +80,14 @@ class AdminChatViewModel(
         
         viewModelScope.launch {
             chatRepository.sendAdminReply(targetUserId, text)
+            // Refresh conversation list so the last message updates
+            loadConversations()
+        }
+    }
+
+    fun clearUserHistory(userId: String) {
+        viewModelScope.launch {
+            chatRepository.clearUserChat(userId)
             // Refresh conversation list so the last message updates
             loadConversations()
         }

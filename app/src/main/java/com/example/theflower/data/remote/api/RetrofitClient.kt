@@ -20,9 +20,14 @@ import javax.net.ssl.X509TrustManager
  */
 object RetrofitClient {
     
-    private val BASE_URL_DEV = com.example.theflower.BuildConfig.API_BASE_URL
 
-    //    private const val BASE_URL_DEV = "http://10.0.2.2:5134/"
+    // Biến kết nối với BE local ( Điện thoại vật lí với Máy chạy BE phải cùng mạng wifi)
+    private val BASE_URL_DEV = com.example.theflower.BuildConfig.API_BASE_URL
+    
+    // Thay xxxxxxxxx thành ipv4 của wifi, thay yyyy là port chạy ở be
+    //private const val BASE_URL_DEV = "http://xxxxxxxxx:yyyy/"
+
+    //private const val BASE_URL_DEV = "http://10.0.2.2:5134/"
     private const val BASE_URL_PROD = "https://api.theflower.com/"
     private const val TIMEOUT_SECONDS = 30L
     

@@ -32,6 +32,14 @@ internal fun AuthFlow(
     onGoToLogin: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(errorMessage) {
+        if (!errorMessage.isNullOrBlank()) {
+            android.widget.Toast.makeText(context, errorMessage, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
     Scaffold(
         containerColor = PaperWhite,
         snackbarHost = { SnackbarHost(snackbarHostState) }

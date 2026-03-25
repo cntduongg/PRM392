@@ -35,11 +35,16 @@ class ChatRepositoryImpl(
     private val repositoryScope = CoroutineScope(Dispatchers.IO)
 
     override suspend fun connect(accessToken: String) {
-        if (hubConnection?.connectionState == HubConnectionState.CONNECTED) return
+        val currentState = hubConnection?.connectionState
+        if (currentState == HubConnectionState.CONNECTED || currentState == HubConnectionState.CONNECTING) {
+            Timber.d("SignalR already connecting or connected")
+            return
+        }
 
         _connectionStatus.value = ChatConnectionStatus.CONNECTING
         
         val hubUrl = if (baseUrl.endsWith("/")) "${baseUrl}hub/chat" else "$baseUrl/hub/chat"
+        Timber.d("Connecting to SignalR at $hubUrl")
         
         try {
             hubConnection = HubConnectionBuilder.create(hubUrl)
@@ -48,31 +53,35 @@ class ChatRepositoryImpl(
 
             // Handle incoming messages
             hubConnection?.on("ReceiveMessage", { message: ChatMessageDto ->
-                Timber.d("Received message: ${message.message} from ${message.userId}")
-                // If we are admin viewing a specific user, or regular user
-                if (activeUserId == null || message.userId == activeUserId) {
-                    val currentList = _messages.value.toMutableList()
+                Timber.d("Received message: ${message.message} (isFromAdmin: ${message.isFromAdmin})")
+                val currentList = _messages.value.toMutableList()
+                if (currentList.none { it.id == message.id }) {
                     currentList.add(message)
                     _messages.value = currentList
                 }
             }, ChatMessageDto::class.java)
 
-            // Handle incoming admin notifications about user messages (for admin view)
             hubConnection?.on("ReceiveUserMessage", { data: Map<String, Any> ->
-                // To refresh conversations list dynamically (handled via Flow in ViewModel)
                 Timber.d("Admin received ReceiveUserMessage event")
-                // For simplicity we rely on REST to refresh conversations when needed
             }, Map::class.java)
 
             hubConnection?.onClosed { exception ->
-                Timber.e(exception, "SignalR Connection Closed")
+                if (exception != null) {
+                    Timber.e(exception, "SignalR Connection Closed with error")
+                } else {
+                    Timber.d("SignalR Connection Closed gracefully")
+                }
                 _connectionStatus.value = ChatConnectionStatus.DISCONNECTED
             }
 
             hubConnection?.start()?.blockingAwait()
-            _connectionStatus.value = ChatConnectionStatus.CONNECTED
-            Timber.d("SignalR Connected to $hubUrl")
             
+            if (hubConnection?.connectionState == HubConnectionState.CONNECTED) {
+                _connectionStatus.value = ChatConnectionStatus.CONNECTED
+                Timber.i("SignalR Connected successfully to $hubUrl")
+            } else {
+                _connectionStatus.value = ChatConnectionStatus.ERROR
+            }
         } catch (e: Exception) {
             Timber.e(e, "Failed to connect to SignalR")
             _connectionStatus.value = ChatConnectionStatus.ERROR
@@ -105,7 +114,25 @@ class ChatRepositoryImpl(
 
     override suspend fun sendAdminReply(targetUserId: String, text: String) {
         if (hubConnection?.connectionState == HubConnectionState.CONNECTED) {
-            hubConnection?.send("SendMessageToUser", targetUserId, text)
+            try {
+                hubConnection?.send("SendMessageToUser", targetUserId, text)
+                return
+            } catch (e: Exception) {
+                Timber.w("Failed to send SignalR admin reply, falling back to REST: ${e.message}")
+            }
+        }
+        
+        // Fallback to REST
+        try {
+            val response = apiService.sendAdminReply(com.example.theflower.data.remote.dtos.AdminReplyRequest(targetUserId, text))
+            if (response.success && response.data != null) {
+                val currentList = _messages.value.toMutableList()
+                currentList.add(response.data)
+                _messages.value = currentList
+                Timber.d("Admin reply sent via REST successfully")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "REST Admin reply fallback failed")
         }
     }
 
@@ -156,6 +183,39 @@ class ChatRepositoryImpl(
         if (userId == null) {
             // Clear messages when exiting chat view
             _messages.value = emptyList()
+        }
+    }
+
+    override suspend fun clearChat(): Result<Unit> {
+        return try {
+            val response = apiService.deleteChatMessages()
+            if (response.success) {
+                _messages.value = emptyList()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to clear chat history")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun clearUserChat(userId: String): Result<Unit> {
+        return try {
+            val response = apiService.deleteUserChatMessages(userId)
+            if (response.success) {
+                // If we are currently viewing this user's messages, clear them in UI
+                if (activeUserId == userId) {
+                    _messages.value = emptyList()
+                }
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to clear user chat history: $userId")
+            Result.failure(e)
         }
     }
 }

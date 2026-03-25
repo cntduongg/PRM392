@@ -24,11 +24,16 @@ class ChatViewModel(
     val connectionStatus: StateFlow<ChatConnectionStatus> = chatRepository.connectionStatus
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ChatConnectionStatus.DISCONNECTED)
 
+    private var isInitialized = false
+
     init {
         initChat()
     }
 
     fun initChat() {
+        if (isInitialized) return
+        isInitialized = true
+        
         viewModelScope.launch {
             val token = tokenManager.getAccessToken().orEmpty()
             if (token.isNotBlank()) {
@@ -52,6 +57,12 @@ class ChatViewModel(
     fun refreshHistory() {
         viewModelScope.launch {
             chatRepository.loadHistory(page = 1)
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            chatRepository.clearChat()
         }
     }
 
