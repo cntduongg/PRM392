@@ -17,9 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
+import java.util.*
 import com.example.theflower.data.MockData
 import com.example.theflower.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentScreen(
     totalAmount: Int,
@@ -32,6 +35,55 @@ fun PaymentScreen(
     val recipientPhone = remember { mutableStateOf("") }
     val deliveryDate = remember { mutableStateOf("") }
     val deliveryAddress = remember { mutableStateOf(initialAddress) }
+
+    // Date/Time picker state
+    val showDatePicker = remember { mutableStateOf(false) }
+    val showTimePicker = remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+    val timePickerState = rememberTimePickerState(is24Hour = true)
+
+    if (showDatePicker.value) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker.value = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker.value = false
+                    showTimePicker.value = true
+                }) { Text("Xác nhận") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker.value = false }) { Text("Hủy") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker.value) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker.value = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val date = datePickerState.selectedDateMillis?.let {
+                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        sdf.format(Date(it))
+                    } ?: ""
+                    val time = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
+                    deliveryDate.value = "$date $time"
+                    showTimePicker.value = false
+                }) { Text("Xác nhận") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker.value = false }) { Text("Hủy") }
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Chọn giờ giao hàng (24h format)", modifier = Modifier.padding(bottom = 16.dp))
+                    TimePicker(state = timePickerState)
+                }
+            }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -90,93 +142,85 @@ fun PaymentScreen(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                TextField(
+                OutlinedTextField(
                     value = recipientName.value,
                     onValueChange = { recipientName.value = it },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("Tên người nhận", color = PlaceholderGray) },
-                    colors = TextFieldDefaults.colors(
+                    colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Sand,
                         unfocusedContainerColor = Sand,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedBorderColor = MossGreen,
+                        unfocusedBorderColor = Color.Transparent,
                         focusedTextColor = SoilBrown,
                         unfocusedTextColor = SoilBrown,
                         cursorColor = MossGreen,
-                        focusedPlaceholderColor = PlaceholderGray,
-                        unfocusedPlaceholderColor = PlaceholderGray
                     )
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                TextField(
+                OutlinedTextField(
                     value = recipientPhone.value,
                     onValueChange = { recipientPhone.value = it },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("Số điện thoại", color = PlaceholderGray) },
-                    colors = TextFieldDefaults.colors(
+                    colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Sand,
                         unfocusedContainerColor = Sand,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedBorderColor = MossGreen,
+                        unfocusedBorderColor = Color.Transparent,
                         focusedTextColor = SoilBrown,
                         unfocusedTextColor = SoilBrown,
                         cursorColor = MossGreen,
-                        focusedPlaceholderColor = PlaceholderGray,
-                        unfocusedPlaceholderColor = PlaceholderGray
                     )
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                TextField(
-                    value = deliveryDate.value,
-                    onValueChange = { deliveryDate.value = it },
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    placeholder = { Text("Ngày giao hàng", color = PlaceholderGray) },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Sand,
-                        unfocusedContainerColor = Sand,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = SoilBrown,
-                        unfocusedTextColor = SoilBrown,
-                        cursorColor = MossGreen,
-                        focusedPlaceholderColor = PlaceholderGray,
-                        unfocusedPlaceholderColor = PlaceholderGray
+                        .clickable { showDatePicker.value = true }
+                ) {
+                    OutlinedTextField(
+                        value = deliveryDate.value,
+                        onValueChange = { },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false,
+                        readOnly = true,
+                        shape = RoundedCornerShape(8.dp),
+                        placeholder = { Text("Ngày giao hàng (Chọn ngày & giờ)", color = PlaceholderGray) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledContainerColor = Sand,
+                            disabledBorderColor = Color.Transparent,
+                            disabledTextColor = SoilBrown,
+                            disabledPlaceholderColor = PlaceholderGray
+                        )
                     )
-                )
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                TextField(
+                OutlinedTextField(
                     value = deliveryAddress.value,
                     onValueChange = { deliveryAddress.value = it },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("Địa chỉ giao hàng", color = PlaceholderGray) },
-                    colors = TextFieldDefaults.colors(
+                    colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Sand,
                         unfocusedContainerColor = Sand,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedBorderColor = MossGreen,
+                        unfocusedBorderColor = Color.Transparent,
                         focusedTextColor = SoilBrown,
                         unfocusedTextColor = SoilBrown,
                         cursorColor = MossGreen,
-                        focusedPlaceholderColor = PlaceholderGray,
-                        unfocusedPlaceholderColor = PlaceholderGray
                     )
                 )
             }

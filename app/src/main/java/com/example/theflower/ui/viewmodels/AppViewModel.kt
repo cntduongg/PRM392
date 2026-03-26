@@ -621,12 +621,6 @@ class AppViewModel(
     }
 
     fun createOrder() {
-        val address = _uiState.value.checkoutAddress
-        if (address.isBlank()) {
-            setError("Vui lòng nhập địa chỉ giao hàng.")
-            return
-        }
-
         if (!_uiState.value.isLoggedIn) {
             navigateToLogin()
             return
@@ -680,7 +674,7 @@ class AppViewModel(
                     if (paymentMethod.equals("VnPay", ignoreCase = true) && !order.paymentUrl.isNullOrBlank()) {
                         _navigationEvent.value = NavigationEvent.OpenUrl(order.paymentUrl)
                     } else if (paymentMethod.equals("COD", ignoreCase = true)) {
-                        onPaymentResult(true, order.orderId)
+                        onPaymentResult(true, order.id)
                     } else {
                         // Default fallback
                         navigateToOrders()

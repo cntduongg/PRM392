@@ -257,23 +257,6 @@ internal fun CartApiScreen(
             elevation = CardDefaults.cardElevation(8.dp)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    "Thông tin giao hàng",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = SoilBrown,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = checkoutAddress,
-                    onValueChange = onCheckoutAddressChange,
-                    placeholder = { Text("📍 Nhập địa chỉ giao hàng", color = SandDark) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = botanicalOutlinedTextFieldColors(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
