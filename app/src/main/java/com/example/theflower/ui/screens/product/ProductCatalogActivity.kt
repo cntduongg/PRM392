@@ -1,10 +1,9 @@
-package com.example.theflower
+package com.example.theflower.ui.screens.product
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.example.theflower.di.DIContainer
-import com.example.theflower.ui.screens.product.ProductCatalogScreen
 import com.example.theflower.ui.theme.MyApplicationTheme
 
 class ProductCatalogActivity : ComponentActivity() {

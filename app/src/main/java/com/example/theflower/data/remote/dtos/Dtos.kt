@@ -130,7 +130,8 @@ data class CartDto(
     @SerializedName(value = "totalPrice", alternate = ["totalAmount"])
     val totalPrice: Double = 0.0,
     val totalItems: Int = 0,
-    val createdAt: String = ""
+    val createdAt: String = "",
+    val pendingOrder: OrderDto? = null
 )
 
 data class CartItemDto(
@@ -225,14 +226,19 @@ data class CreateOrderResponseDto(
     val totalAmount: Double = 0.0,
     val paymentUrl: String? = null
 )
-
 data class DashboardStatsDto(
     val totalSales: Double = 0.0,
     val totalOrders: Int = 0,
-    val totalUsers: Int = 0,
     val totalProducts: Int = 0,
+    val totalUsers: Int = 0,
     val topProducts: List<TopProductDto> = emptyList(),
-    val recentOrders: List<OrderDto> = emptyList()
+    val recentOrders: List<OrderDto> = emptyList(),
+    val monthlyRevenue: List<MonthlyRevenueDto> = emptyList()
+)
+
+data class MonthlyRevenueDto(
+    val month: String = "",
+    val revenue: Double = 0.0
 )
 
 data class TopProductDto(
@@ -317,7 +323,10 @@ data class ConversationSummaryDto(
 data class StoreLocationDto(
     @SerializedName(value = "locationId", alternate = ["id"])
     val locationId: String = "",
-    val address: String? = null
+    val address: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val status: String? = "Active"
 )
 
 data class CreateStoreLocationDto(
@@ -326,7 +335,12 @@ data class CreateStoreLocationDto(
 
 data class UpdateStoreLocationDto(
     val locationId: String,
-    val address: String? = null
+    val address: String? = null,
+    val status: String? = "Active"
+)
+
+data class UpdateStoreStatusRequest(
+    val status: String
 )
 
 /**

@@ -204,4 +204,66 @@ class AdminRepositoryImpl(
             Result.failure(ApiException.NetworkError(errorCause = e))
         }
     }
+
+    // ─── Store / Map Management ─────────────────────────────────────────────
+
+    override suspend fun getStoresAdmin(): Result<List<StoreLocationDto>> {
+        return try {
+            val response = apiService.getStores()
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ServerError(500, response.message))
+            }
+        } catch (e: HttpException) {
+            Result.failure(ApiException.handleException(e))
+        } catch (e: Exception) {
+            Result.failure(ApiException.NetworkError(errorCause = e))
+        }
+    }
+
+    override suspend fun createStoreAdmin(request: CreateStoreLocationDto): Result<StoreLocationDto> {
+        return try {
+            val response = apiService.createStoreAdmin(request)
+            if (response.success && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
+        } catch (e: HttpException) {
+            Result.failure(ApiException.handleException(e))
+        } catch (e: Exception) {
+            Result.failure(ApiException.NetworkError(errorCause = e))
+        }
+    }
+
+    override suspend fun updateStoreAdmin(locationId: String, request: UpdateStoreLocationDto): Result<Unit> {
+        return try {
+            val response = apiService.updateStoreAdmin(locationId, request)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
+        } catch (e: HttpException) {
+            Result.failure(ApiException.handleException(e))
+        } catch (e: Exception) {
+            Result.failure(ApiException.NetworkError(errorCause = e))
+        }
+    }
+
+    override suspend fun deleteStoreAdmin(locationId: String): Result<Unit> {
+        return try {
+            val response = apiService.deleteStoreAdmin(locationId)
+            if (response.success) {
+                Result.success(Unit)
+            } else {
+                Result.failure(ApiException.ValidationError(response.message))
+            }
+        } catch (e: HttpException) {
+            Result.failure(ApiException.handleException(e))
+        } catch (e: Exception) {
+            Result.failure(ApiException.NetworkError(errorCause = e))
+        }
+    }
 }

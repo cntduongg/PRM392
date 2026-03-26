@@ -30,6 +30,7 @@ object DIContainer {
     private var chatRepository: IChatRepository? = null
     private var userRepository: IUserRepository? = null
     private var adminRepository: IAdminRepository? = null
+    private var storeRepository: IStoreRepository? = null
     
     /**
      * Initialize DI Container with app context
@@ -39,6 +40,8 @@ object DIContainer {
         context = appContext
         RetrofitClient.initialize(isDevelopment, getTokenManager())
     }
+
+    fun getContext(): Context = context
     
     /**
      * Get or create TokenManager singleton
@@ -157,6 +160,14 @@ object DIContainer {
     }
 
     /**
+     * Get or create StoreRepository singleton
+     * Handles: fetch stores for users
+     */
+    fun getStoreRepository(): IStoreRepository {
+        return storeRepository ?: StoreRepositoryImpl(getApiService()).also { storeRepository = it }
+    }
+
+    /**
      * Reset all singletons (useful for testing or logout)
      */
     fun reset() {
@@ -172,5 +183,6 @@ object DIContainer {
         chatRepository = null
         userRepository = null
         adminRepository = null
+        storeRepository = null
     }
 }

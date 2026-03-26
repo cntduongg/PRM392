@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.theflower.ui.components.EmptyState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -322,6 +323,13 @@ internal fun AdminDashboardScreen(
     onCategorySort: (String) -> Unit,
     onUserSort: (String) -> Unit,
     onUpdateOrderStatus: (String, String) -> Unit,
+    // Store Management
+    stores: List<StoreLocationDto>,
+    onRefreshStores: () -> Unit,
+    onCreateStore: (String) -> Unit,
+    onUpdateStore: (String, String, String) -> Unit,
+    onDeleteStore: (String) -> Unit,
+    onStoreSort: (String) -> Unit,
     dashboardStats: com.example.theflower.data.remote.dtos.DashboardStatsDto? = null
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -366,7 +374,7 @@ internal fun AdminDashboardScreen(
                     }
                 }
             ) {
-                val tabs = listOf("Tổng quan", "Đơn hàng", "Thống kê", "Danh mục", "Sản phẩm", "Người dùng", "CSKH")
+                val tabs = listOf("Tổng quan", "Đơn hàng", "Thống kê", "Danh mục", "Sản phẩm", "Người dùng", "Cửa hàng", "CSKH")
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
@@ -438,7 +446,16 @@ internal fun AdminDashboardScreen(
                         onDeleteUser = onDeleteUser,
                         onUserSort = onUserSort
                     )
-                    6 -> AdminChatSection(adminChatVm = adminChatVm)
+                    6 -> StoreManagementSection(
+                        stores = stores,
+                        errorMessage = errorMessage,
+                        onRefreshStores = onRefreshStores,
+                        onCreateStore = onCreateStore,
+                        onUpdateStore = onUpdateStore,
+                        onDeleteStore = onDeleteStore,
+                        onStoreSort = onStoreSort
+                    )
+                    7 -> AdminChatSection(adminChatVm = adminChatVm)
                 }
             }
         }
@@ -466,7 +483,13 @@ internal fun AdminOverviewSection(
     val totalOrders = dashboardStats?.totalOrders ?: orders.size
     val totalProducts = dashboardStats?.totalProducts ?: products.size
     val totalUsers = dashboardStats?.totalUsers ?: users.size
-    val monthlyRevenue = buildMonthlyRevenue(orders)
+    
+    // Use backend stats if available, otherwise fallback to local calculation
+    val monthlyRevenueLocal = if (dashboardStats?.monthlyRevenue?.isNotEmpty() == true) {
+        dashboardStats.monthlyRevenue.map { it.month to it.revenue }
+    } else {
+        buildMonthlyRevenue(orders)
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -534,7 +557,7 @@ internal fun AdminOverviewSection(
 
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            MonthlyRevenueChart(monthlyRevenue = monthlyRevenue)
+            MonthlyRevenueChart(monthlyRevenue = monthlyRevenueLocal)
         }
 
         item {
@@ -1573,6 +1596,251 @@ internal fun AdminChatSection(adminChatVm: AdminChatViewModel) {
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Text("➤", fontSize = 18.sp, color = PaperWhite)
+                }
+            }
+        }
+    }
+}
+
+// ─── StoreManagementSection ──────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun StoreManagementSection(
+    stores: List<StoreLocationDto>,
+    errorMessage: String?,
+    onRefreshStores: () -> Unit,
+    onCreateStore: (String) -> Unit,
+    onUpdateStore: (String, String, String) -> Unit,
+    onDeleteStore: (String) -> Unit,
+    onStoreSort: (String) -> Unit
+) {
+    var address by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf("Active") }
+    
+    var showAddForm by remember { mutableStateOf(false) }
+    var editingStore by remember { mutableStateOf<StoreLocationDto?>(null) }
+
+    fun clearFields() {
+        address = ""
+        status = "Active"
+        editingStore = null
+    }
+
+    LaunchedEffect(editingStore) {
+        editingStore?.let {
+            address = it.address ?: ""
+            status = it.status ?: "Active"
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Cửa hàng (${stores.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = SoilBrown,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { 
+                            clearFields()
+                            showAddForm = !showAddForm 
+                        },
+                        modifier = Modifier.size(36.dp).background(MossGreen, CircleShape)
+                    ) {
+                        Text(if (showAddForm) "➖" else "➕", color = Color.White, fontSize = 14.sp)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onRefreshStores,
+                        modifier = Modifier.size(36.dp).background(Sand, CircleShape)
+                    ) {
+                        Text("🔄", fontSize = 14.sp)
+                    }
+                }
+            }
+
+            // Stores Sorting UI
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Sắp xếp:", style = MaterialTheme.typography.labelSmall, color = SoilBrown)
+                for (sortField in listOf("Address", "Status")) {
+                    AssistChip(
+                        onClick = { onStoreSort(sortField) },
+                        label = { Text(if (sortField == "Address") "Địa chỉ" else "Trạng thái", fontSize = 10.sp) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Sand,
+                            labelColor = SoilBrown
+                        )
+                    )
+                }
+            }
+
+            if (!errorMessage.isNullOrBlank()) {
+                ErrorNote(message = errorMessage, modifier = Modifier.padding(bottom = 12.dp))
+            }
+
+            if (showAddForm || editingStore != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Sand),
+                    elevation = CardDefaults.cardElevation(2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = if (editingStore != null) "Cập nhật cửa hàng 🏪" else "Thêm cửa hàng mới ✨", 
+                            style = MaterialTheme.typography.titleMedium, 
+                            color = SoilBrown, 
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        OutlinedTextField(
+                            value = address, 
+                            onValueChange = { address = it }, 
+                            label = { Text("Địa chỉ cửa hàng") },
+                            placeholder = { Text("Nhập địa chỉ chi tiết") },
+                            leadingIcon = { Text("📍") },
+                            colors = botanicalOutlinedTextFieldColors(), 
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (editingStore != null) {
+                            var statusExpanded by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(
+                                expanded = statusExpanded,
+                                onExpandedChange = { statusExpanded = !statusExpanded }
+                            ) {
+                                OutlinedTextField(
+                                    value = status,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Trạng thái") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded) },
+                                    colors = botanicalOutlinedTextFieldColors(),
+                                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = statusExpanded,
+                                    onDismissRequest = { statusExpanded = false }
+                                ) {
+                                    listOf("Active", "Inactive").forEach { s ->
+                                        DropdownMenuItem(
+                                            text = { Text(s) },
+                                            onClick = {
+                                                status = s
+                                                statusExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { 
+                                    showAddForm = false
+                                    editingStore = null
+                                    clearFields()
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = SandDark)
+                            ) { Text("Hủy", color = PaperWhite) }
+                            Button(
+                                onClick = {
+                                    if (editingStore != null) {
+                                        onUpdateStore(editingStore!!.locationId, address, status)
+                                    } else {
+                                        onCreateStore(address)
+                                    }
+                                    clearFields()
+                                    showAddForm = false
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = MossGreen, contentColor = PaperWhite, disabledContainerColor = SandDark, disabledContentColor = PaperWhite)
+                            ) { Text(if (editingStore != null) "Cập nhật" else "Tạo") }
+                        }
+                    }
+                }
+            }
+
+            if (stores.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    EmptyState(message = "Không có cửa hàng nào")
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    items(stores) { store ->
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = PaperWhite),
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(50.dp).background(Sand, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("🏪", fontSize = 24.sp)
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = store.address ?: "Không có địa chỉ",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = SoilBrown,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 2,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Row {
+                                            IconButton(onClick = { editingStore = store }) {
+                                                Text("✏️", fontSize = 16.sp)
+                                            }
+                                            IconButton(onClick = { onDeleteStore(store.locationId) }) {
+                                                Text("🗑️", fontSize = 16.sp)
+                                            }
+                                        }
+                                    }
+                                    Text(
+                                        text = "Trạng thái: ${store.status ?: "Active"}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if ((store.status ?: "Active") == "Active") MossGreen else Color.Red,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -83,6 +83,9 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
 
     // Real-time Chat (SignalR)
-    implementation("com.microsoft.signalr:signalr:8.0.0")
+    implementation(libs.signalr)
+    
+    // Lifecycle Process (Background detection)
+    implementation(libs.androidx.lifecycle.process)
 }
 

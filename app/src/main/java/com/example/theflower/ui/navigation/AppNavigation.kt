@@ -1,6 +1,7 @@
 package com.example.theflower.ui.navigation
 
 import android.content.Intent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -10,6 +11,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Text
+import com.example.theflower.ui.theme.SoilBrown
+import com.example.theflower.ui.viewmodels.AppUiState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -20,13 +25,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.example.theflower.ProductCatalogActivity
+import com.example.theflower.ui.screens.product.ProductCatalogActivity
 import com.example.theflower.ui.components.AppDrawerContent
 import com.example.theflower.ui.components.AppNotification
 import com.example.theflower.ui.components.AppTopBar
 import com.example.theflower.ui.components.NavTab
 import com.example.theflower.ui.components.NotificationModal
 import com.example.theflower.ui.theme.PaperWhite
+import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.ui.viewmodels.AdminChatViewModel
 import com.example.theflower.ui.viewmodels.AppViewModel
 import com.example.theflower.ui.viewmodels.ChatViewModel
@@ -35,6 +41,7 @@ import com.example.theflower.ui.screens.payment.PaymentSuccessScreen
 import com.example.theflower.ui.screens.payment.PaymentCancelScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import com.example.theflower.ui.screens.map.StoreListScreen
 import kotlin.math.roundToInt
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -49,6 +56,7 @@ import kotlin.math.roundToInt
 //   else (tabs)          → MainAppLayout dispatches by NavTab
 //     NavTab.HOME        → ProductNavScreens.kt :: ProductListApiScreen
 //     NavTab.CATEGORY    → CategoryNavScreens.kt :: CategoryListScreen
+//     NavTab.STORES      → StoreListScreen.kt   :: StoreListScreen
 //     NavTab.CART        → CartNavScreen.kt     :: CartApiScreen
 //     NavTab.PROFILE     → ProfileNavScreen.kt  :: ProfileApiScreen
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -149,8 +157,18 @@ fun AppNavigation(viewModel: AppViewModel) {
                 }
             }
 
+            val sortedStores = uiState.stores.let { sts ->
+                when (uiState.adminStoreSortBy) {
+                    "Address" -> if (uiState.adminStoreSortOrder == "asc") sts.sortedBy { it.address } else sts.sortedByDescending { it.address }
+                    "Status" -> if (uiState.adminStoreSortOrder == "asc") sts.sortedBy { it.status } else sts.sortedByDescending { it.status }
+                    else -> sts
+                }
+            }
+
             LaunchedEffect(Unit) {
                 viewModel.loadAdminDashboardStats()
+                viewModel.loadAdminOrders()
+                viewModel.loadStores() // Ensure stores are loaded
             }
 
             AdminDashboardScreen(
@@ -178,6 +196,13 @@ fun AppNavigation(viewModel: AppViewModel) {
                 onCategorySort = viewModel::setAdminCategorySort,
                 onUserSort = viewModel::setAdminUserSort,
                 onUpdateOrderStatus = viewModel::updateAdminOrderStatus,
+                // Store management integration
+                stores = sortedStores,
+                onRefreshStores = viewModel::loadStores,
+                onCreateStore = viewModel::createAdminStore,
+                onUpdateStore = viewModel::updateAdminStore,
+                onDeleteStore = viewModel::deleteAdminStore,
+                onStoreSort = viewModel::setAdminStoreSort,
                 dashboardStats = uiState.adminDashboardStats
             )
         }
@@ -221,6 +246,8 @@ fun AppNavigation(viewModel: AppViewModel) {
 
         // Default: drawer layout
         else -> MainAppLayout(
+            uiState = uiState,
+            viewModel = viewModel,
             currentTab = uiState.currentTab,
             products = uiState.products,
             searchQuery = uiState.searchQuery,
@@ -232,6 +259,7 @@ fun AppNavigation(viewModel: AppViewModel) {
             userPhone = uiState.userPhone,
             userAddress = uiState.userAddress,
             categories = uiState.categories,
+            stores = uiState.stores,
             userRole = uiState.userRole,
             checkoutAddress = uiState.checkoutAddress,
             onTabClick = viewModel::selectTab,
@@ -253,6 +281,7 @@ fun AppNavigation(viewModel: AppViewModel) {
             },
             onRefreshProducts = viewModel::loadProducts,
             onRefreshCart = viewModel::loadCart,
+            onRefreshStores = viewModel::loadStores,
             onUpdateProfile = viewModel::updateProfile,
             onChangePassword = viewModel::changePassword,
             onLogout = viewModel::logout,
@@ -267,6 +296,8 @@ fun AppNavigation(viewModel: AppViewModel) {
 
 @Composable
 private fun MainAppLayout(
+    uiState: AppUiState,
+    viewModel: AppViewModel,
     currentTab: NavTab,
     products: List<com.example.theflower.data.remote.dtos.ProductDto>,
     searchQuery: String,
@@ -278,6 +309,7 @@ private fun MainAppLayout(
     userPhone: String,
     userAddress: String,
     categories: List<com.example.theflower.data.remote.dtos.CategoryDto>,
+    stores: List<com.example.theflower.data.remote.dtos.StoreLocationDto>,
     userRole: String,
     checkoutAddress: String,
     onTabClick: (NavTab) -> Unit,
@@ -297,6 +329,7 @@ private fun MainAppLayout(
     onOpenCustomerProductActivity: () -> Unit,
     onRefreshProducts: () -> Unit,
     onRefreshCart: () -> Unit,
+    onRefreshStores: () -> Unit,
     onUpdateProfile: (String, String, String) -> Unit,
     onChangePassword: (String, String, String) -> Unit,
     onLogout: () -> Unit,
@@ -334,14 +367,11 @@ private fun MainAppLayout(
         )
     }
 
-    val filteredProducts = if (searchQuery.isBlank()) products else products.filter {
-        it.name.contains(searchQuery, ignoreCase = true) ||
-            it.categoryName.contains(searchQuery, ignoreCase = true)
-    }
 
     val topBarTitle = when (currentTab) {
         NavTab.HOME -> "🌿 The Flower"
         NavTab.CATEGORY -> "Danh mục"
+        NavTab.STORES -> "Cửa hàng"
         NavTab.CART -> "Giỏ hàng"
         NavTab.PROFILE -> "Tài khoản"
     }
@@ -399,11 +429,22 @@ private fun MainAppLayout(
                     modifier = Modifier.padding(padding),
                     title = "",  // title shown in TopBar
                     searchQuery = searchQuery,
-                    products = filteredProducts,
+                    products = products, // Use products directly as they are filtered by backend/VM
                     onSearchChange = onSearchChange,
                     onProductClick = onProductClick,
                     onAddToCart = onAddToCart,
-                    onRefresh = onRefreshProducts
+                    onRefresh = onRefreshProducts,
+                    // Filter props
+                    categories = categories,
+                    selectedCategoryId = uiState.productFilterCategoryId,
+                    minPrice = uiState.productFilterMinPrice,
+                    maxPrice = uiState.productFilterMaxPrice,
+                    sortBy = uiState.productSortBy,
+                    sortOrder = uiState.productSortOrder,
+                    onFilterCategory = viewModel::setProductFilterCategory,
+                    onFilterPrice = viewModel::setProductPriceRange,
+                    onSort = viewModel::setProductSort,
+                    onClearFilters = viewModel::clearProductFilters
                 )
 
                 NavTab.CATEGORY -> CategoryListScreen(
@@ -411,6 +452,18 @@ private fun MainAppLayout(
                     categories = categories,
                     products = products,
                     onCategoryClick = onCategoryClick
+                )
+
+                NavTab.STORES -> StoreListScreen(
+                    modifier = Modifier.padding(padding),
+                    stores = stores,
+                    onViewOnMap = { store -> 
+                        viewModel.openMap(store.address ?: "", store.latitude, store.longitude, false)
+                    },
+                    onGetDirections = { store ->
+                        viewModel.openMap(store.address ?: "", store.latitude, store.longitude, true)
+                    },
+                    onRefresh = onRefreshStores
                 )
 
                 NavTab.CART -> CartApiScreen(

@@ -2,40 +2,52 @@ package com.example.theflower.ui.screens.product
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
-import com.example.theflower.data.MockData
-import com.example.theflower.domain.models.Product
-import com.example.theflower.ui.theme.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.theflower.data.remote.dtos.ProductDto
+import com.example.theflower.ui.viewmodels.AppViewModel
+import com.example.theflower.ui.navigation.ProductFilterBottomSheet
+import com.example.theflower.ui.navigation.formatCurrency
+import com.example.theflower.ui.theme.*
+import com.example.theflower.ui.components.EmptyState
 
 @Composable
 fun AllProductsScreen(
-    onProductClick: (Product) -> Unit,
-    searchQuery: String = ""
+    viewModel: AppViewModel = viewModel(),
+    onProductClick: (ProductDto) -> Unit
 ) {
-    val sortBy = remember { mutableStateOf("recommended") }
+    val uiState by viewModel.uiState.collectAsState()
+    var showFilterSheet by remember { mutableStateOf(false) }
 
-    val filteredProducts = if (searchQuery.isBlank()) {
-        MockData.products
-    } else {
-        MockData.products.filter {
-            it.name.contains(searchQuery, ignoreCase = true) ||
-                it.category.contains(searchQuery, ignoreCase = true)
-        }
+    if (showFilterSheet) {
+        ProductFilterBottomSheet(
+            categories = uiState.categories,
+            selectedCategoryId = uiState.productFilterCategoryId,
+            minPrice = uiState.productFilterMinPrice,
+            maxPrice = uiState.productFilterMaxPrice,
+            sortBy = uiState.productSortBy,
+            sortOrder = uiState.productSortOrder,
+            onDismiss = { showFilterSheet = false },
+            onApply = { cat, min, max, sBy, sOrder ->
+                viewModel.setProductFilterCategory(cat)
+                viewModel.setProductPriceRange(min, max)
+                viewModel.setProductSort(sBy, sOrder)
+            },
+            onReset = viewModel::clearProductFilters
+        )
     }
 
     Column(
@@ -43,51 +55,50 @@ fun AllProductsScreen(
             .fillMaxSize()
             .background(PaperWhite)
     ) {
-        Text(
-            text = "Danh mục hoa",
-            style = MaterialTheme.typography.headlineSmall,
-            color = SoilBrown,
-            modifier = Modifier.padding(16.dp)
-        )
-
-        // Filter/Sort chips
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            listOf("Được đề xuất", "Giá: Thấp → Cao", "Giá: Cao → Thấp", "Đánh giá cao").forEach { filter ->
-                FilterChip(
-                    selected = filter == "Được đề xuất",
-                    onClick = { sortBy.value = filter },
-                    label = { Text(filter, style = MaterialTheme.typography.labelSmall) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MossGreen,
-                        selectedLabelColor = PaperWhite,
-                        containerColor = Sand,
-                        labelColor = SoilBrown
-                    )
+            Text(
+                text = "Danh mục hoa",
+                style = MaterialTheme.typography.headlineSmall,
+                color = SoilBrown
+            )
+            
+            IconButton(onClick = { showFilterSheet = true }) {
+                Text(
+                    text = if (uiState.productFilterCategoryId != null || uiState.productFilterMinPrice != null || uiState.productFilterMaxPrice != null) "✓" else "🎚️",
+                    fontSize = 20.sp
                 )
             }
         }
 
-        // Product grid
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(filteredProducts) { product ->
-                ProductListItem(
-                    product = product,
-                    onClick = { onProductClick(product) }
-                )
+        // Search bar (if needed inside screen, but usually in TopBar)
+        // Here we just display the results from uiState.products
+
+        if (uiState.products.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Không tìm thấy sản phẩm nào 🌸", color = SandDark)
+            }
+        } else {
+            // Product grid
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                items(uiState.products) { product ->
+                    ProductListItem(
+                        product = product,
+                        onClick = { onProductClick(product) }
+                    )
+                }
             }
         }
     }
@@ -95,13 +106,13 @@ fun AllProductsScreen(
 
 @Composable
 fun ProductListItem(
-    product: Product,
+    product: ProductDto,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(310.dp)
+            .height(280.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Sand)
@@ -110,13 +121,13 @@ fun ProductListItem(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(130.dp)
                     .background(Color(0xFFE8DFD8)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "🌸",
-                    fontSize = MaterialTheme.typography.headlineLarge.fontSize
+                    fontSize = 40.sp
                 )
             }
 
@@ -127,7 +138,7 @@ fun ProductListItem(
             ) {
                 Text(
                     text = product.name,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     color = SoilBrown,
                     maxLines = 2,
                     minLines = 2,
@@ -137,7 +148,7 @@ fun ProductListItem(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "⭐ ${product.rating}",
+                    text = product.categoryName,
                     style = MaterialTheme.typography.labelSmall,
                     color = SandDark
                 )
@@ -145,9 +156,10 @@ fun ProductListItem(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "₫${product.price}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MossGreen
+                    text = formatCurrency(product.price),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MossGreen,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -162,7 +174,7 @@ fun ProductListItem(
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Text(
-                        text = "+ Thêm",
+                        text = "Xem chi tiết",
                         style = MaterialTheme.typography.labelSmall,
                         color = PaperWhite
                     )

@@ -2,6 +2,7 @@ package com.example.theflower.ui.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,33 +31,80 @@ import coil.compose.AsyncImage
 import com.example.theflower.data.remote.dtos.OrderDto
 import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.ui.theme.*
+import com.example.theflower.ui.components.EmptyState
 
 // ─── ProductListApiScreen ────────────────────────────────────────────────────
 // Called by: MainAppLayout() when NavTab.HOME
 
 @Composable
-internal fun ProductListApiScreen(
+fun ProductListApiScreen(
     modifier: Modifier = Modifier,
-    title: String,
-    searchQuery: String,
-    products: List<ProductDto>,
-    onSearchChange: (String) -> Unit,
+    title: String = "", // for TopBar context if needed
+    searchQuery: String = "",
+    products: List<ProductDto> = emptyList(),
+    onSearchChange: (String) -> Unit = {},
     onProductClick: (ProductDto) -> Unit,
     onAddToCart: (String) -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    // Filter props
+    categories: List<com.example.theflower.data.remote.dtos.CategoryDto>,
+    selectedCategoryId: String?,
+    minPrice: Double?,
+    maxPrice: Double?,
+    sortBy: String,
+    sortOrder: String,
+    onFilterCategory: (String?) -> Unit,
+    onFilterPrice: (Double?, Double?) -> Unit,
+    onSort: (String, String) -> Unit,
+    onClearFilters: () -> Unit
 ) {
+    var showFilterSheet by remember { mutableStateOf(false) }
+
+    if (showFilterSheet) {
+        ProductFilterBottomSheet(
+            categories = categories,
+            selectedCategoryId = selectedCategoryId,
+            minPrice = minPrice,
+            maxPrice = maxPrice,
+            sortBy = sortBy,
+            sortOrder = sortOrder,
+            onDismiss = { showFilterSheet = false },
+            onApply = { cat, min, max, sBy, sOrder ->
+                onFilterCategory(cat)
+                onFilterPrice(min, max)
+                onSort(sBy, sOrder)
+            },
+            onReset = onClearFilters
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(PaperWhite)
     ) {
-        // Refresh row
+        // Refresh & Filter row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Button(
+                onClick = { showFilterSheet = true },
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = if (selectedCategoryId != null || minPrice != null || maxPrice != null) MossGreen else Sand),
+                elevation = ButtonDefaults.buttonElevation(0.dp)
+            ) {
+                Text(
+                    text = if (selectedCategoryId != null || minPrice != null || maxPrice != null) "✓ Đã lọc" else "🎚️ Lọc & Sắp xếp",
+                    color = if (selectedCategoryId != null || minPrice != null || maxPrice != null) PaperWhite else SoilBrown,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+
             Button(
                 onClick = onRefresh,
                 shape = RoundedCornerShape(20.dp),
@@ -560,4 +608,205 @@ internal fun ProductInfoSection(title: String, content: String?) {
             }
         }
     }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ProductFilterBottomSheet(
+    categories: List<com.example.theflower.data.remote.dtos.CategoryDto>,
+    selectedCategoryId: String?,
+    minPrice: Double?,
+    maxPrice: Double?,
+    sortBy: String,
+    sortOrder: String,
+    onDismiss: () -> Unit,
+    onApply: (String?, Double?, Double?, String, String) -> Unit,
+    onReset: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    var tempCategoryId by remember { mutableStateOf(selectedCategoryId) }
+    var tempMinPriceText by remember { mutableStateOf(minPrice?.toInt()?.toString() ?: "") }
+    var tempMaxPriceText by remember { mutableStateOf(maxPrice?.toInt()?.toString() ?: "") }
+    var tempSortBy by remember { mutableStateOf(sortBy) }
+    var tempSortOrder by remember { mutableStateOf(sortOrder) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = PaperWhite,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = SandDark) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 40.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(
+                text = "Bộ lọc sản phẩm",
+                style = MaterialTheme.typography.titleLarge,
+                color = SoilBrown,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(Modifier.height(20.dp))
+            
+            // --- Categories ---
+            Text("Danh mục", style = MaterialTheme.typography.titleSmall, color = SoilBrown)
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // "Tất cả" option
+                FilterChip(
+                    selected = tempCategoryId == null,
+                    onClick = { tempCategoryId = null },
+                    label = { Text("Tất cả") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MossGreen,
+                        selectedLabelColor = PaperWhite
+                    )
+                )
+                categories.forEach { category ->
+                    FilterChip(
+                        selected = tempCategoryId == category.id,
+                        onClick = { tempCategoryId = category.id },
+                        label = { Text(category.name) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MossGreen,
+                            selectedLabelColor = PaperWhite
+                        )
+                    )
+                }
+            }
+            
+            Spacer(Modifier.height(20.dp))
+            
+            // --- Price Range ---
+            Text("Khoảng giá (VNĐ)", style = MaterialTheme.typography.titleSmall, color = SoilBrown)
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = tempMinPriceText,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) tempMinPriceText = it },
+                    placeholder = { Text("Từ", style = MaterialTheme.typography.bodySmall) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MossGreen,
+                        unfocusedBorderColor = SandDark.copy(alpha = 0.5f)
+                    )
+                )
+                Text("-", color = SoilBrown)
+                OutlinedTextField(
+                    value = tempMaxPriceText,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) tempMaxPriceText = it },
+                    placeholder = { Text("Đến", style = MaterialTheme.typography.bodySmall) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MossGreen,
+                        unfocusedBorderColor = SandDark.copy(alpha = 0.5f)
+                    )
+                )
+            }
+            
+            Spacer(Modifier.height(20.dp))
+            
+            // --- Sorting ---
+            Text("Sắp xếp theo", style = MaterialTheme.typography.titleSmall, color = SoilBrown)
+            Spacer(Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(
+                    "Name" to "Tên sản phẩm",
+                    "Price" to "Giá bán"
+                ).forEach { (value, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { tempSortBy = value }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = tempSortBy == value,
+                            onClick = { tempSortBy = value },
+                            colors = RadioButtonDefaults.colors(selectedColor = MossGreen)
+                        )
+                        Text(label, color = SoilBrown)
+                    }
+                }
+            }
+            
+            Spacer(Modifier.height(12.dp))
+            Text("Thứ tự", style = MaterialTheme.typography.titleSmall, color = SoilBrown)
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { tempSortOrder = "asc" }) {
+                    RadioButton(selected = tempSortOrder == "asc", onClick = { tempSortOrder = "asc" }, colors = RadioButtonDefaults.colors(selectedColor = MossGreen))
+                    Text("Tăng dần", color = SoilBrown)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { tempSortOrder = "desc" }) {
+                    RadioButton(selected = tempSortOrder == "desc", onClick = { tempSortOrder = "desc" }, colors = RadioButtonDefaults.colors(selectedColor = MossGreen))
+                    Text("Giảm dần", color = SoilBrown)
+                }
+            }
+            
+            Spacer(Modifier.height(32.dp))
+            
+            // --- Actions ---
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        onReset()
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = SoilBrown),
+                    border = BorderStroke(1.dp, SandDark.copy(alpha = 0.5f))
+                ) {
+                    Text("Đặt lại")
+                }
+                
+                Button(
+                    onClick = {
+                        val min = tempMinPriceText.toDoubleOrNull()
+                        val max = tempMaxPriceText.toDoubleOrNull()
+                        onApply(tempCategoryId, min, max, tempSortBy, tempSortOrder)
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1.5f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MossGreen)
+                ) {
+                    Text("Áp dụng", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FlowRow(
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    content: @Composable () -> Unit
+) {
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = modifier,
+        horizontalArrangement = horizontalArrangement,
+        content = { content() }
+    )
 }

@@ -22,7 +22,7 @@ import com.example.theflower.data.remote.dtos.CategoryDto
 import com.example.theflower.ui.theme.*
 
 enum class NavTab {
-    HOME, CATEGORY, CART, PROFILE
+    HOME, CATEGORY, STORES, CART, PROFILE
 }
 
 @Composable
@@ -168,6 +168,16 @@ fun AppDrawerContent(
                 }
             }
         }
+
+        DrawerNavItem(
+            icon = "🏪",
+            label = "Hệ thống cửa hàng",
+            isSelected = currentTab == NavTab.STORES,
+            onClick = {
+                onTabClick(NavTab.STORES)
+                closeDrawer()
+            }
+        )
 
         DrawerNavItem(
             icon = "🛒",

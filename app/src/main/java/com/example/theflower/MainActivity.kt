@@ -1,11 +1,17 @@
 package com.example.theflower
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.example.theflower.utils.NotificationHelper
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -20,6 +26,9 @@ import com.example.theflower.di.DIContainer
 import com.example.theflower.ui.navigation.AppNavigation
 import com.example.theflower.ui.theme.MyApplicationTheme
 import com.example.theflower.ui.viewmodels.AppViewModel
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 
 /**
  * Main Activity - Entry point for the application
@@ -42,7 +51,12 @@ class MainActivity : ComponentActivity() {
         // Initialize DI container with application context
         DIContainer.init(applicationContext, isDevelopment = true)
         
+        NotificationHelper.createNotificationChannel(this)
+        checkNotificationPermission()
+
         handleIntent(intent)
+        
+        setupLifecycleObserver()
         
         enableEdgeToEdge()
         setContent {
@@ -97,5 +111,38 @@ class MainActivity : ComponentActivity() {
                 appViewModel.onPaymentResult(success, orderId)
             }
         }
+    }
+
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    101
+                )
+            }
+        }
+    }
+
+    private fun setupLifecycleObserver() {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStop(owner: LifecycleOwner) {
+                // App went to background
+                val uiState = appViewModel.uiState.value
+                val cart = uiState.cart
+                if (uiState.isLoggedIn && cart != null && (cart.totalItems ?: 0) > 0) {
+                    NotificationHelper.showNotification(
+                        applicationContext,
+                        "Giỏ hàng đang chờ bạn! 🛒",
+                        "Bạn vẫn còn ${cart.totalItems} sản phẩm trong giỏ hàng. Hãy hoàn tất thanh toán ngay nhé!"
+                    )
+                }
+            }
+        })
     }
 }

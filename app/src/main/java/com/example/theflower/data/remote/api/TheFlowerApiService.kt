@@ -194,5 +194,31 @@ interface TheFlowerApiService {
 
     @GET("api/Dashboard/stats")
     suspend fun getDashboardStatsAdmin(): ApiResponse<DashboardStatsDto>
+
+    // ─── Store Endpoints ──────────────────────────────────────────────────
+    
+    @GET("api/StoreLocations")
+    suspend fun getStores(): ApiResponse<List<StoreLocationDto>>
+
+    @GET("api/StoreLocations/{id}")
+    suspend fun getStoreDetail(
+        @Path("id") locationId: String
+    ): ApiResponse<StoreLocationDto>
+
+    @POST("api/StoreLocations")
+    suspend fun createStoreAdmin(
+        @Body request: CreateStoreLocationDto
+    ): ApiResponse<StoreLocationDto>
+
+    @PUT("api/StoreLocations/{id}")
+    suspend fun updateStoreAdmin(
+        @Path("id") locationId: String,
+        @Body request: UpdateStoreLocationDto
+    ): ApiResponse<Any>
+
+    @DELETE("api/StoreLocations/{id}")
+    suspend fun deleteStoreAdmin(
+        @Path("id") locationId: String
+    ): ApiResponse<Any>
 }
 

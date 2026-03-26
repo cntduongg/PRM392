@@ -8,6 +8,7 @@ import com.example.theflower.data.remote.dtos.OrderDto
 import com.example.theflower.data.remote.dtos.ProductDto
 import com.example.theflower.data.remote.dtos.AdminUserDto
 import com.example.theflower.data.remote.dtos.DashboardStatsDto
+import com.example.theflower.data.remote.dtos.StoreLocationDto
 
 /**
  * Main Application UI State
@@ -46,7 +47,19 @@ data class AppUiState(
     val adminProductSortBy: String = "Name",
     val adminProductSortOrder: String = "asc",
     val adminCategorySortBy: String = "Name",
-    val adminCategorySortOrder: String = "asc"
+    val adminCategorySortOrder: String = "asc",
+    
+    // Store Management
+    val stores: List<StoreLocationDto> = emptyList(),
+    val adminStoreSortBy: String = "Address",
+    val adminStoreSortOrder: String = "asc",
+
+    // Product Filtering & Sorting
+    val productFilterCategoryId: String? = null,
+    val productFilterMinPrice: Double? = null,
+    val productFilterMaxPrice: Double? = null,
+    val productSortBy: String = "Name",
+    val productSortOrder: String = "asc"
 )
 
 /**

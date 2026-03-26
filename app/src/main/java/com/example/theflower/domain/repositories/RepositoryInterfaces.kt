@@ -140,4 +140,18 @@ interface IAdminRepository {
 
     suspend fun getOrders(): Result<List<OrderDto>>
     suspend fun getDashboardStats(): Result<DashboardStatsDto>
+
+    // ─── Store / Map Management ─────────────────────────────────────────────
+    suspend fun getStoresAdmin(): Result<List<StoreLocationDto>>
+    suspend fun createStoreAdmin(request: CreateStoreLocationDto): Result<StoreLocationDto>
+    suspend fun updateStoreAdmin(locationId: String, request: UpdateStoreLocationDto): Result<Unit>
+    suspend fun deleteStoreAdmin(locationId: String): Result<Unit>
+}
+
+/**
+ * Store Repository Interface (User-facing)
+ */
+interface IStoreRepository {
+    suspend fun getStores(): Result<List<StoreLocationDto>>
+    suspend fun getStoreDetail(locationId: String): Result<StoreLocationDto>
 }

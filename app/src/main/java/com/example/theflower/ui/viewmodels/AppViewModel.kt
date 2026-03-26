@@ -3,32 +3,12 @@ package com.example.theflower.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.theflower.data.local.TokenManager
-import com.example.theflower.data.remote.dtos.AddToCartRequest
-import com.example.theflower.data.remote.dtos.CreateAdminUserRequest
-import com.example.theflower.data.remote.dtos.CreateOrderRequest
-import com.example.theflower.data.remote.dtos.CreatePaymentRequest
-import com.example.theflower.data.remote.dtos.ChangeUserPasswordDto
-import com.example.theflower.data.remote.dtos.CartDto
-import com.example.theflower.data.remote.dtos.CategoryDto
-import com.example.theflower.data.remote.dtos.CategoryUpsertRequest
-import com.example.theflower.data.remote.dtos.LoginRequest
-import com.example.theflower.data.remote.dtos.ProductDto
-import com.example.theflower.data.remote.dtos.ProductUpsertRequest
-import com.example.theflower.data.remote.dtos.RegisterRequest
-import com.example.theflower.data.remote.dtos.UpdateAdminUserRequest
-import com.example.theflower.data.remote.dtos.UpdateProfileRequest
-import com.example.theflower.data.remote.dtos.UpdateProductRequest
+import com.example.theflower.data.remote.dtos.*
 import com.example.theflower.di.DIContainer
-import com.example.theflower.domain.repositories.IAdminRepository
+import com.example.theflower.domain.repositories.*
 import com.example.theflower.domain.models.Product
-import com.example.theflower.domain.repositories.IAuthRepository
-import com.example.theflower.domain.repositories.ICategoryRepository
-import com.example.theflower.domain.repositories.ICartRepository
-import com.example.theflower.domain.repositories.IOrderRepository
-import com.example.theflower.domain.repositories.IPaymentRepository
-import com.example.theflower.domain.repositories.IProductRepository
-import com.example.theflower.domain.repositories.IUserRepository
 import com.example.theflower.ui.components.NavTab
+import com.example.theflower.utils.NotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,9 +24,12 @@ class AppViewModel(
     private val orderRepository: IOrderRepository = DIContainer.getOrderRepository(),
     private val paymentRepository: IPaymentRepository = DIContainer.getPaymentRepository(),
     private val adminRepository: IAdminRepository = DIContainer.getAdminRepository(),
+    private val storeRepository: IStoreRepository = DIContainer.getStoreRepository(),
     private val userRepository: IUserRepository = DIContainer.getUserRepository(),
     private val tokenManager: TokenManager = DIContainer.getTokenManager()
 ) : ViewModel() {
+
+    private var hasNotifiedPendingOrder = false
 
     private val _uiState = MutableStateFlow(AppUiState())
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
@@ -58,6 +41,7 @@ class AppViewModel(
         restoreSession()
         loadCategories()
         loadProducts()
+        loadStores()
     }
 
     fun selectTab(tab: NavTab) {
@@ -93,6 +77,11 @@ class AppViewModel(
                 _uiState.update { it.copy(selectedCategory = null) }
                 navigateToScreen("profile")
             }
+            NavTab.STORES -> {
+                _uiState.update { it.copy(selectedCategory = null) }
+                navigateToScreen("stores")
+                loadStores()
+            }
         }
     }
 
@@ -101,6 +90,14 @@ class AppViewModel(
     }
 
     fun onPaymentResult(success: Boolean, orderId: String) {
+        if (success) {
+            NotificationHelper.showNotification(
+                DIContainer.getContext(),
+                "Thanh toán thành công! 🌸",
+                "Đơn hàng #$orderId đã được xác nhận. Chúng tôi sẽ sớm giao đến bạn!"
+            )
+        }
+
         _uiState.update {
             it.copy(
                 currentScreen = "payment_result",
@@ -191,6 +188,7 @@ class AppViewModel(
             }
             "orders" -> navigateToScreen("profile")
             "chat" -> navigateToScreen("home")
+            "stores" -> navigateToScreen("home")
             "admin_dashboard" -> navigateToScreen("profile")
             "category_detail" -> {
                 _uiState.update { it.copy(currentScreen = "category", selectedCategory = null) }
@@ -381,7 +379,17 @@ class AppViewModel(
         viewModelScope.launch {
             setLoading(true)
             clearError()
-            productRepository.getProducts(pageNumber = 1, pageSize = 50)
+            val state = _uiState.value
+            productRepository.getProducts(
+                pageNumber = 1,
+                pageSize = 50,
+                categoryId = state.productFilterCategoryId,
+                minPrice = state.productFilterMinPrice,
+                maxPrice = state.productFilterMaxPrice,
+                sortBy = state.productSortBy,
+                sortOrder = state.productSortOrder,
+                search = if (state.searchQuery.isNotBlank()) state.searchQuery else null
+            )
                 .onSuccess { response ->
                     _uiState.update { it.copy(products = response.items.orEmpty()) }
                     clearError()
@@ -391,6 +399,34 @@ class AppViewModel(
                 }
             setLoading(false)
         }
+    }
+
+    fun setProductFilterCategory(categoryId: String?) {
+        _uiState.update { it.copy(productFilterCategoryId = categoryId) }
+        loadProducts()
+    }
+
+    fun setProductPriceRange(min: Double?, max: Double?) {
+        _uiState.update { it.copy(productFilterMinPrice = min, productFilterMaxPrice = max) }
+        loadProducts()
+    }
+
+    fun setProductSort(sortBy: String, order: String) {
+        _uiState.update { it.copy(productSortBy = sortBy, productSortOrder = order) }
+        loadProducts()
+    }
+
+    fun clearProductFilters() {
+        _uiState.update { 
+            it.copy(
+                productFilterCategoryId = null,
+                productFilterMinPrice = null,
+                productFilterMaxPrice = null,
+                productSortBy = "Name",
+                productSortOrder = "asc"
+            )
+        }
+        loadProducts()
     }
 
     fun loadCategories() {
@@ -553,13 +589,25 @@ class AppViewModel(
         viewModelScope.launch {
             cartRepository.getCart()
                 .onSuccess { cart ->
-                    _uiState.update { it.copy(cart = cart) }
+                    _uiState.update { it.copy(cart = cart, pendingOrder = cart.pendingOrder) }
+                    
+                    // Trigger notification for pending order
+                    if (cart.pendingOrder != null && !hasNotifiedPendingOrder) {
+                        NotificationHelper.showNotification(
+                            DIContainer.getContext(),
+                            "Bạn có đơn hàng chưa thanh toán 🌸",
+                            "Sản phẩm trong giỏ hàng đang chờ bạn. Hãy hoàn tất thanh toán để nhận nhiều ưu đãi nhé!"
+                        )
+                        hasNotifiedPendingOrder = true
+                    }
+                    
+                    clearError()
                 }
                 .onFailure {
                     if (it.message?.contains("Not found", ignoreCase = true) == true ||
                         it.message?.contains("404", ignoreCase = true) == true
                     ) {
-                        _uiState.update { state -> state.copy(cart = CartDto()) }
+                        _uiState.update { state -> state.copy(cart = com.example.theflower.data.remote.dtos.CartDto(), pendingOrder = null) }
                     } else {
                         setError(it.message ?: "Không thể tải giỏ hàng")
                     }
@@ -735,23 +783,6 @@ class AppViewModel(
         }
     }
 
-    fun loadAdminDashboardStats() {
-        if (!_uiState.value.isLoggedIn || _uiState.value.userRole != "Admin") return
-
-        viewModelScope.launch {
-            setLoading(true)
-            adminRepository.getDashboardStats()
-                .onSuccess { stats ->
-                    _uiState.update { it.copy(adminDashboardStats = stats) }
-                    clearError()
-                }
-                .onFailure {
-                    setError(it.message ?: "Không thể tải thống kê dashboard")
-                }
-            setLoading(false)
-        }
-    }
-
     private fun restoreSession() {
         viewModelScope.launch {
             val token = tokenManager.getAccessToken().orEmpty()
@@ -840,20 +871,6 @@ class AppViewModel(
         }
     }
 
-    fun updateAdminOrderStatus(orderId: String, status: String) {
-        viewModelScope.launch {
-            setLoading(true)
-            adminRepository.updateOrderStatus(orderId, status)
-                .onSuccess {
-                    loadOrders()
-                    clearError()
-                }
-                .onFailure {
-                    setError(it.message ?: "Cập nhật trạng thái đơn hàng thất bại")
-                }
-            setLoading(false)
-        }
-    }
 
     fun updateAdminUser(
         userId: String,
@@ -1005,62 +1022,6 @@ class AppViewModel(
         }
     }
 
-    // ─── ADMIN CATEGORY CRUD ──────────────────────────────────────────────
-
-    fun createAdminCategory(name: String) {
-        if (!_uiState.value.isLoggedIn) return
-        if (name.isBlank()) {
-            setError("Tên danh mục không được để trống")
-            return
-        }
-
-        viewModelScope.launch {
-            setLoading(true)
-            val request = CategoryUpsertRequest(name)
-            adminRepository.createCategory(request)
-                .onSuccess {
-                    loadCategories()
-                    clearError()
-                }
-                .onFailure { setError(it.message ?: "Tạo danh mục thất bại") }
-            setLoading(false)
-        }
-    }
-
-    fun updateAdminCategory(categoryId: String, name: String) {
-        if (!_uiState.value.isLoggedIn) return
-        if (name.isBlank()) {
-            setError("Tên danh mục không được để trống")
-            return
-        }
-
-        viewModelScope.launch {
-            setLoading(true)
-            val request = CategoryUpsertRequest(name)
-            adminRepository.updateCategory(categoryId, request)
-                .onSuccess {
-                    loadCategories()
-                    clearError()
-                }
-                .onFailure { setError(it.message ?: "Cập nhật danh mục thất bại") }
-            setLoading(false)
-        }
-    }
-
-    fun deleteAdminCategory(categoryId: String) {
-        if (!_uiState.value.isLoggedIn) return
-
-        viewModelScope.launch {
-            setLoading(true)
-            adminRepository.deleteCategory(categoryId)
-                .onSuccess {
-                    loadCategories()
-                    clearError()
-                }
-                .onFailure { setError(it.message ?: "Xóa danh mục thất bại") }
-            setLoading(false)
-        }
-    }
 
     // ─── ADMIN SORTING ──────────────────────────────────────────────────
 
@@ -1082,6 +1043,193 @@ class AppViewModel(
         _uiState.update {
             val newOrder = if (it.adminCategorySortBy == sortBy && it.adminCategorySortOrder == "asc") "desc" else "asc"
             it.copy(adminCategorySortBy = sortBy, adminCategorySortOrder = newOrder)
+        }
+    }
+
+    // ─── STORES ──────────────────────────────────────────────────────────
+
+    fun loadStores() {
+        viewModelScope.launch {
+            setLoading(true)
+            val result = if (_uiState.value.userRole.equals("Admin", ignoreCase = true)) {
+                adminRepository.getStoresAdmin()
+            } else {
+                storeRepository.getStores()
+            }
+            
+            result.onSuccess { stores ->
+                _uiState.update { it.copy(stores = stores) }
+                clearError()
+            }
+            .onFailure { setError(it.message ?: "Không thể tải danh sách cửa hàng") }
+            setLoading(false)
+        }
+    }
+
+    fun openMap(address: String, lat: Double? = null, lon: Double? = null, directions: Boolean = false) {
+        val uri = if (directions && lat != null && lon != null) {
+            "google.navigation:q=$lat,$lon"
+        } else if (lat != null && lon != null) {
+            "geo:$lat,$lon?q=${android.net.Uri.encode(address)}"
+        } else {
+            "geo:0,0?q=${android.net.Uri.encode(address)}"
+        }
+        _navigationEvent.update { NavigationEvent.OpenUrl(uri) }
+    }
+
+    fun createAdminStore(address: String) {
+        if (!_uiState.value.isLoggedIn) return
+        if (address.isBlank()) {
+            setError("Địa chỉ không được để trống")
+            return
+        }
+
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.createStoreAdmin(CreateStoreLocationDto(address))
+                .onSuccess {
+                    loadStores()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Tạo cửa hàng thất bại") }
+            setLoading(false)
+        }
+    }
+
+    fun updateAdminStore(locationId: String, address: String, status: String) {
+        if (!_uiState.value.isLoggedIn) return
+        if (address.isBlank()) {
+            setError("Địa chỉ không được để trống")
+            return
+        }
+
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.updateStoreAdmin(locationId, UpdateStoreLocationDto(locationId, address, status))
+                .onSuccess {
+                    loadStores()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Cập nhật cửa hàng thất bại") }
+            setLoading(false)
+        }
+    }
+
+    fun deleteAdminStore(locationId: String) {
+        if (!_uiState.value.isLoggedIn) return
+
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.deleteStoreAdmin(locationId)
+                .onSuccess {
+                    loadStores()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Xóa cửa hàng thất bại") }
+            setLoading(false)
+        }
+    }
+
+    fun setAdminStoreSort(sortBy: String) {
+        _uiState.update {
+            val newOrder = if (it.adminStoreSortBy == sortBy && it.adminStoreSortOrder == "asc") "desc" else "asc"
+            it.copy(adminStoreSortBy = sortBy, adminStoreSortOrder = newOrder)
+        }
+    }
+
+    // ─── Admin Dashboard Stats ──────────────────────────────────────────────
+    fun loadAdminDashboardStats() {
+        if (!_uiState.value.isLoggedIn || _uiState.value.userRole != "Admin") return
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.getDashboardStats()
+                .onSuccess { stats ->
+                    _uiState.update { it.copy(adminDashboardStats = stats) }
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Không thể tải thống kê dashboard") }
+            setLoading(false)
+        }
+    }
+
+    // ─── Admin Orders ────────────────────────────────────────────────────────
+    fun loadAdminOrders() {
+        if (!_uiState.value.isLoggedIn || _uiState.value.userRole != "Admin") return
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.getOrders()
+                .onSuccess { orders ->
+                    _uiState.update { it.copy(orders = orders) }
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Không thể tải danh sách đơn hàng") }
+            setLoading(false)
+        }
+    }
+
+    fun updateAdminOrderStatus(orderId: String, status: String) {
+        if (!_uiState.value.isLoggedIn || _uiState.value.userRole != "Admin") return
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.updateOrderStatus(orderId, status)
+                .onSuccess {
+                    loadAdminOrders()
+                    loadAdminDashboardStats()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Cập nhật trạng thái đơn hàng thất bại") }
+            setLoading(false)
+        }
+    }
+
+    // ─── Admin Categories ──────────────────────────────────────────────────
+    fun createAdminCategory(name: String) {
+        if (!_uiState.value.isLoggedIn || _uiState.value.userRole != "Admin") return
+        if (name.isBlank()) {
+            setError("Tên danh mục không được để trống")
+            return
+        }
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.createCategory(CategoryUpsertRequest(name))
+                .onSuccess {
+                    loadCategories()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Tạo danh mục thất bại") }
+            setLoading(false)
+        }
+    }
+
+    fun updateAdminCategory(categoryId: String, name: String) {
+        if (!_uiState.value.isLoggedIn || _uiState.value.userRole != "Admin") return
+        if (name.isBlank()) {
+            setError("Tên danh mục không được để trống")
+            return
+        }
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.updateCategory(categoryId, CategoryUpsertRequest(name))
+                .onSuccess {
+                    loadCategories()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Cập nhật danh mục thất bại") }
+            setLoading(false)
+        }
+    }
+
+    fun deleteAdminCategory(categoryId: String) {
+        if (!_uiState.value.isLoggedIn || _uiState.value.userRole != "Admin") return
+        viewModelScope.launch {
+            setLoading(true)
+            adminRepository.deleteCategory(categoryId)
+                .onSuccess {
+                    loadCategories()
+                    clearError()
+                }
+                .onFailure { setError(it.message ?: "Xoá danh mục thất bại") }
+            setLoading(false)
         }
     }
 }
