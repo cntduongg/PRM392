@@ -632,12 +632,39 @@ class AppViewModel(
             return
         }
 
+        navigateToScreen("payment")
+        _navigationEvent.value = NavigationEvent.NavigateToPayment
+    }
+
+    fun executeOrder(
+        paymentMethod: String,
+        recipientName: String,
+        recipientPhone: String,
+        deliveryDate: String,
+        billingAddress: String
+    ) {
+        if (!_uiState.value.isLoggedIn) {
+            navigateToLogin()
+            return
+        }
+
         viewModelScope.launch {
             setLoading(true)
+            clearError()
+
+            // Combine recipient info into billing address for backend storage
+            val combinedAddress = buildString {
+                append("Người nhận: $recipientName")
+                if (recipientPhone.isNotBlank()) append(" ($recipientPhone)")
+                if (deliveryDate.isNotBlank()) append(" - Ngày giao: $deliveryDate")
+                append(" - Địa chỉ: $billingAddress")
+            }
+
             val request = CreateOrderRequest(
-                paymentMethod = "VnPay",
-                billingAddress = address
+                paymentMethod = paymentMethod,
+                billingAddress = combinedAddress
             )
+
             orderRepository.createOrder(request)
                 .onSuccess { order ->
                     loadOrders()
@@ -649,13 +676,20 @@ class AppViewModel(
                             pendingOrder = order
                         )
                     }
-                    order.paymentUrl?.let { url ->
-                        _navigationEvent.value = NavigationEvent.OpenUrl(url)
+
+                    if (paymentMethod.equals("VnPay", ignoreCase = true) && !order.paymentUrl.isNullOrBlank()) {
+                        _navigationEvent.value = NavigationEvent.OpenUrl(order.paymentUrl)
+                    } else if (paymentMethod.equals("COD", ignoreCase = true)) {
+                        onPaymentResult(true, order.orderId)
+                    } else {
+                        // Default fallback
+                        navigateToOrders()
                     }
                     clearError()
                 }
                 .onFailure {
                     setError(it.message ?: "Không thể tạo đơn hàng")
+                    navigateToScreen("cart") // Go back to cart on failure
                 }
             setLoading(false)
         }

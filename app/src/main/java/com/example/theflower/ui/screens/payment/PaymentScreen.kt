@@ -22,14 +22,16 @@ import com.example.theflower.ui.theme.*
 
 @Composable
 fun PaymentScreen(
-    totalAmount: Int = 599000,
-    onPaymentSuccess: () -> Unit,
-    onPaymentFailed: () -> Unit
+    totalAmount: Int,
+    initialAddress: String = "",
+    onConfirmPayment: (method: String, name: String, phone: String, date: String, address: String) -> Unit,
+    onCancel: () -> Unit
 ) {
-    val selectedPaymentMethod = remember { mutableStateOf("cod") }
+    val selectedPaymentMethod = remember { mutableStateOf("COD") }
     val recipientName = remember { mutableStateOf("") }
     val recipientPhone = remember { mutableStateOf("") }
     val deliveryDate = remember { mutableStateOf("") }
+    val deliveryAddress = remember { mutableStateOf(initialAddress) }
 
     LazyColumn(
         modifier = Modifier
@@ -154,6 +156,29 @@ fun PaymentScreen(
                         unfocusedPlaceholderColor = PlaceholderGray
                     )
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TextField(
+                    value = deliveryAddress.value,
+                    onValueChange = { deliveryAddress.value = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    placeholder = { Text("Địa chỉ giao hàng", color = PlaceholderGray) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Sand,
+                        unfocusedContainerColor = Sand,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = SoilBrown,
+                        unfocusedTextColor = SoilBrown,
+                        cursorColor = MossGreen,
+                        focusedPlaceholderColor = PlaceholderGray,
+                        unfocusedPlaceholderColor = PlaceholderGray
+                    )
+                )
             }
         }
 
@@ -173,26 +198,17 @@ fun PaymentScreen(
                 PaymentMethodCard(
                     icon = "💵",
                     name = "Thanh toán khi nhận hàng (COD)",
-                    isSelected = selectedPaymentMethod.value == "cod",
-                    onClick = { selectedPaymentMethod.value = "cod" }
+                    isSelected = selectedPaymentMethod.value == "COD",
+                    onClick = { selectedPaymentMethod.value = "COD" }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 PaymentMethodCard(
                     icon = "🏦",
-                    name = "Chuyển khoản ngân hàng",
-                    isSelected = selectedPaymentMethod.value == "bank",
-                    onClick = { selectedPaymentMethod.value = "bank" }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                PaymentMethodCard(
-                    icon = "💳",
-                    name = "Ví điện tử",
-                    isSelected = selectedPaymentMethod.value == "ewallet",
-                    onClick = { selectedPaymentMethod.value = "ewallet" }
+                    name = "Thanh toán qua VnPay",
+                    isSelected = selectedPaymentMethod.value == "VnPay",
+                    onClick = { selectedPaymentMethod.value = "VnPay" }
                 )
             }
         }
@@ -204,7 +220,15 @@ fun PaymentScreen(
                     .padding(16.dp)
             ) {
                 Button(
-                    onClick = onPaymentSuccess,
+                    onClick = {
+                        onConfirmPayment(
+                            selectedPaymentMethod.value,
+                            recipientName.value,
+                            recipientPhone.value,
+                            deliveryDate.value,
+                            deliveryAddress.value
+                        )
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -221,7 +245,7 @@ fun PaymentScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
-                    onClick = onPaymentFailed,
+                    onClick = onCancel,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),

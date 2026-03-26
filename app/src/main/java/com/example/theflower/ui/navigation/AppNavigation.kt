@@ -35,6 +35,7 @@ import com.example.theflower.ui.screens.payment.PaymentSuccessScreen
 import com.example.theflower.ui.screens.payment.PaymentCancelScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // AppNavigation.kt  –  Entry point & routing
@@ -186,6 +187,17 @@ fun AppNavigation(viewModel: AppViewModel) {
             ChatScreen(
                 viewModel = chatVm,
                 onBack = viewModel::navigateBack
+            )
+        }
+
+        "payment" -> {
+            com.example.theflower.ui.screens.payment.PaymentScreen(
+                totalAmount = uiState.cart?.totalPrice?.roundToInt() ?: 0,
+                initialAddress = uiState.checkoutAddress,
+                onConfirmPayment = { method, name, phone, date, address ->
+                    viewModel.executeOrder(method, name, phone, date, address)
+                },
+                onCancel = viewModel::navigateBack
             )
         }
 
